@@ -1,5 +1,5 @@
 /* ================= CRM · POTKOVICE ================= */
-const APP_BUILD = '202609181118';
+const APP_BUILD = '202609181323';
 if (window.HTML_BUILD !== APP_BUILD) {
   // stranica i kod nisu iste verzije (keš) → učitaj ponovo sveže
   try { if (sessionStorage.getItem('crm_reload') !== APP_BUILD) { sessionStorage.setItem('crm_reload', APP_BUILD); location.replace(location.pathname + '?v=' + Date.now()); } } catch (e) {}
@@ -22,8 +22,14 @@ const ST = Object.fromEntries(STATUSES.map(s => [s.key, s.label]));
 const NO_STOCK = ['cancelled', 'returned'];           // ove porudžbine ne drže robu
 const NO_REVENUE = ['cancelled', 'returned'];
 const TODO = ['new', 'confirmed', 'packed'];
-const CH = { shopify: 'Shopify', instagram: 'Instagram', other: 'Drugo' };
-const PAY = { cod: 'Pouzeće', card: 'Kartica', bank: 'Uplata' };
+const CH = { instagram: 'Instagram', phone: 'Telefon / Viber', person: 'Lično', shopify: 'Sajt', other: 'Drugo' };
+const PAY = { cod: 'Pouzeće', cash: 'Gotovina', bank: 'Uplata na račun', invoice: 'Faktura (odloženo)', card: 'Kartica' };
+const CKIND = { potkivac: 'Potkivač', ergela: 'Ergela / konjički klub', kasacki: 'Kasački / galopski klub', salas: 'Salaš / vlasnik konja', prodavnica: 'Prodavnica / distributer', veterinar: 'Veterinar', ostalo: 'Ostalo' };
+const TIER = { retail: 'Maloprodaja', wholesale: 'Veleprodaja' };
+const isUnpaid = (o) => !NO_REVENUE.includes(o.status) && !o.paid_at && ['bank', 'invoice'].includes(o.payment);
+const dueDays = (o) => o.due_date ? Math.floor((new Date() - new Date(o.due_date + 'T00:00:00')) / 864e5) : null;  // >0 = kasni
+const unpaidOrders = () => state.orders.filter(isUnpaid).sort((a, b) => (a.due_date || '9').localeCompare(b.due_date || '9'));
+const tierPrice = (p, tier) => tier === 'wholesale' && n(p.wholesale_price) ? n(p.wholesale_price) : n(p.sell_price);
 const POST_ST = [
   { key: 'idea', label: 'Ideja' }, { key: 'scripting', label: 'Scenario' }, { key: 'filming', label: 'Snimanje' },
   { key: 'editing', label: 'Montaža' }, { key: 'scheduled', label: 'Zakazano' }, { key: 'published', label: 'Objavljeno' },
@@ -86,11 +92,11 @@ function fail(e) { console.error(e); toast('Greška: ' + (e.message || e)); }
 async function q(p) { const { data, error } = await p; if (error) throw error; return data; }
 
 const itemsOf = (oid) => state.items.filter(i => i.order_id === oid);
-const variantsOf = (pid) => state.variants.filter(v => v.product_id === pid).sort((a, b) => sizeRank(a.size) - sizeRank(b.size));
+const variantsOf = (pid) => state.variants.filter(v => v.product_id === pid).sort((a, b) => (sizeRank(a.size) - sizeRank(b.size)) || String(a.color || '').localeCompare(String(b.color || ''), 'sr'));
 const product = (id) => state.products.find(p => p.id === id);
 const variant = (id) => state.variants.find(v => v.id === id);
 const order = (id) => state.orders.find(o => o.id === id);
-function sizeRank(s) { const t = String(s || '').trim(); const m = t.match(/\d+([.,]\d+)?/); return m ? parseFloat(m[0].replace(',', '.')) : 999; }  // potkovice: sortiranje po broju u veličini
+function sizeRank(s) { const t = String(s || '').trim(); if (/^0+$/.test(t)) return -t.length; const m = t.match(/\d+([.,]\d+)?/); return m ? parseFloat(m[0].replace(',', '.')) : 999; }  // potkovice: 00 pre 0, pa po broju
 
 function totals(o) {
   const its = itemsOf(o.id);
@@ -167,6 +173,15 @@ async function stockAlert(v, from, to) {
   else if (to <= t && from > t) await log({ product_id: p.id, type: 'alert', body: `${p.name} ${v.size}: ostalo još ${to} kom` });
 }
 
+async function markPaid(id, yes) {
+  const o = order(id); if (!o) return;
+  try {
+    const patch = { paid_at: yes ? new Date().toISOString() : null };
+    await q(sb.from('p_orders').update(patch).eq('id', id)); Object.assign(o, patch);
+    await log({ order_id: id, type: 'system', body: yes ? `Naplaćeno ${rsd(totals(o).revenue)}` : 'Naplata poništena' });
+    renderAll(); if (state.openOrderId === id) renderDrawer(); toast(yes ? 'Naplaćeno ✓' : 'Naplata poništena');
+  } catch (e) { fail(e); }
+}
 async function setOrderStatus(o, ns) {
   if (o.status === ns) return;
   const old = o.status;
@@ -226,11 +241,24 @@ function renderOverview() {
     stat('Vrednost robe (nabavna)', rsd(stockCost), `po prodajnoj <b>${rsd(stockSell)}</b>`, 'stock_value') +
     stat('Povraćaji', state.rets.filter(r => r.type !== 'feedback' && inPeriod(r.created_at, P)).length, `<b>${returned}</b> vraćenih porudžbina od <b>${all}</b>`, 'returns');
 
+  const unpaid = unpaidOrders(), unpaidSum = unpaid.reduce((a, o) => a + totals(o).revenue, 0), overdue = unpaid.filter(o => dueDays(o) > 0).length;
+  const onWay = state.imps.filter(x => !x.received && !['cancelled', 'planned', 'sample'].includes(x.status));
+  const onWayPcs = onWay.reduce((a, x) => a + impTotals(x).qty, 0), onWayRsd = onWay.reduce((a, x) => a + impTotals(x).total, 0);
+  const nextT = onWay.filter(x => x.eta).sort((a, b) => a.eta.localeCompare(b.eta))[0];
+  const calls = callList();
+  const wholesaleVal = state.products.filter(p => p.status !== 'archived').reduce((a, p) => a + variantsOf(p.id).reduce((b, v) => b + v.stock * tierPrice(p, 'wholesale'), 0), 0);
+  if ($('kpi3')) $('kpi3').innerHTML =
+    stat('Nenaplaćeno', `<span class="${unpaid.length ? 'neg' : ''}">${rsd(unpaidSum)}</span>`, `<b>${unpaid.length}</b> porudžbin${bpl(unpaid.length, 'a', 'e', 'a')} na račun / fakturu${overdue ? ` · <b class="neg">${overdue} kasni</b>` : ''}`) +
+    stat('Roba na putu', `${onWayPcs} kom`, `${rsd(onWayRsd)} u <b>${onWay.length}</b> tur${bpl(onWay.length, 'i', 'e', 'a')}${nextT ? ` · sledeća ${fmtDate(nextT.eta)}` : ''}`) +
+    stat('Kupci za poziv', calls.length, calls.length ? `${calls.slice(0, 2).map(x => esc(x.c.name.split(' ')[0])).join(', ')}${calls.length > 2 ? '…' : ''} kasne sa porudžbinom` : 'svi poručuju u svom ritmu') +
+    stat('Roba po velo ceni', rsd(wholesaleVal), `nabavna <b>${rsd(stockCost)}</b> · maloprodajna <b>${rsd(stockSell)}</b>`);
+  if ($('dueList')) { $('dueCount').textContent = unpaid.length; $('dueList').innerHTML = unpaid.slice(0, 8).map(o => { const dd = dueDays(o); return `<div class="list-row" data-order="${o.id}"><span><b>${esc(o.order_no || '')}</b> · ${esc(o.customer_name)}<div class="page-sub">${PAY[o.payment]}${o.invoice_no ? ' · ' + esc(o.invoice_no) : ''}${o.due_date ? ' · rok ' + fmtDate(o.due_date) : ''}</div></span><span class="num ${dd > 0 ? 'neg' : ''}">${rsd(totals(o).revenue)}${dd > 0 ? `<div style="font-size:11px">kasni ${dd} d</div>` : ''}</span></div>`; }).join('') || '<div class="empty">Sve je naplaćeno.</div>'; }
+  if ($('callList')) { $('callCount').textContent = calls.length; $('callList').innerHTML = calls.slice(0, 8).map(({ c, s, cd }) => `<div class="list-row" data-cust="${c.id}"><span><b>${esc(c.name)}</b>${c.kind ? ` <span class="page-sub">· ${esc(CKIND[c.kind] || c.kind)}</span>` : ''}<div class="page-sub">${cd.once ? `kupio jednom, pre ${cd.idle} d` : `obično na ${cd.cyc} d, kasni ${cd.over} d`} · ${s.count} porudžb. · ${rsd(s.spend)}</div></span><span class="num">${c.phone ? `<a class="mini-btn" href="tel:${esc(c.phone)}" onclick="event.stopPropagation()">📞</a>` : ''}</span></div>`).join('') || '<div class="empty">Niko ne kasni. Svi poručuju u svom ritmu.</div>'; }
   $('todoCount').textContent = todo.length;
   $('todoList').innerHTML = todo.slice().reverse().map(o => `<div class="list-row" data-order="${o.id}"><span><b>${esc(o.order_no)}</b> · ${esc(o.customer_name)}</span>${pill(o.status)}</div>`).join('') || '<div class="kb-empty">Sve je obrađeno.</div>';
 
   const low = [];
-  state.products.filter(p => p.status === 'active').forEach(p => variantsOf(p.id).forEach(v => { if (v.stock <= lowT()) low.push({ p, v }); }));
+  state.products.filter(p => p.status === 'active').forEach(p => variantsOf(p.id).forEach(v => { if (v.stock <= (v.min_stock ?? lowT())) low.push({ p, v }); }));
   $('lowCount').textContent = low.length;
   $('lowList').innerHTML = low.map(({ p, v }) => `<div class="list-row" data-goto="products"><span><b>${esc(p.name)}</b> · ${esc(v.size)}${v.color ? ' · ' + esc(v.color) : ''}</span><span class="num ${v.stock <= 0 ? 'neg' : ''}">${v.stock} kom</span></div>`).join('') || '<div class="kb-empty">Sve veličine imaju zalihu.</div>';
 
@@ -368,10 +396,10 @@ function renderProducts() {
     const m = n(p.sell_price) - n(p.buy_price);
     const vs = variantsOf(p.id);
     return `<tr data-product="${p.id}">
-      <td><div class="prod-cell">${p.image_url ? `<img class="prod-thumb" src="${esc(p.image_url)}" alt="">` : '<div class="prod-thumb"></div>'}<div><div class="lead-name">${esc(p.name)}</div><div class="lead-social">${esc(p.category || '')}${p.supplier ? ' · ' + esc(p.supplier) : ''}</div></div></div></td>
-      <td><div class="sizes">${vs.map(v => `<span class="size-chip ${v.stock <= lowT() ? 'low' : ''}"><span class="sz">${esc(v.size)}${v.color ? ' ' + esc(v.color) : ''}</span><button data-stock="${v.id}" data-d="-1">−</button><span class="qty">${v.stock}</span><button data-stock="${v.id}" data-d="1">+</button></span>`).join('') || '<span class="page-sub">Dodaj veličine</span>'}</div></td>
+      <td><div class="prod-cell">${p.image_url ? `<img class="prod-thumb" src="${esc(p.image_url)}" alt="">` : '<div class="prod-thumb"></div>'}<div><div class="lead-name">${esc(p.name)}</div><div class="lead-social">${esc(p.category || '')}${p.profile ? ' · ' + esc(p.profile) : ''}${p.maker ? ' · ' + esc(p.maker) : ''}${p.supplier ? ' · ' + esc(p.supplier) : ''}</div></div></div></td>
+      <td><div class="sizes">${vs.map(v => `<span class="size-chip ${v.stock <= (v.min_stock ?? lowT()) ? 'low' : ''}"><span class="sz">${esc(v.size)}${v.color ? ' ' + esc(v.color) : ''}</span><button data-stock="${v.id}" data-d="-1">−</button><span class="qty">${v.stock}</span><button data-stock="${v.id}" data-d="1">+</button></span>`).join('') || '<span class="page-sub">Dodaj veličine</span>'}</div></td>
       <td class="num">${rsd(p.buy_price)}</td>
-      <td class="num">${rsd(p.sell_price)}${p.compare_price ? `<div class="page-sub"><s>${rsd(p.compare_price)}</s></div>` : ''}</td>
+      <td class="num">${rsd(p.sell_price)}${n(p.wholesale_price) ? `<div class="page-sub">velo ${rsd(p.wholesale_price)}</div>` : ''}${p.compare_price ? `<div class="page-sub">konkurencija ${rsd(p.compare_price)}</div>` : ''}</td>
       <td class="num">${rsd(m)}<div class="page-sub">${n(p.sell_price) ? pct(m / n(p.sell_price)) : '—'} · ${n(p.buy_price) ? (n(p.sell_price) / n(p.buy_price)).toFixed(1) + 'x' : ''}</div></td>
       <td class="num">${soldQty(p.id)}</td>
       <td><span class="pill ${p.status === 'active' ? 'st-delivered' : p.status === 'draft' ? 'st-confirmed' : 'st-cancelled'}">${{ active: 'Aktivan', draft: 'Priprema', archived: 'Arhiviran' }[p.status]}</span></td></tr>`;
@@ -413,7 +441,8 @@ function renderDrawer() {
   const t = totals(o);
   $('dTitle').textContent = o.customer_name;
   $('dSub').textContent = `${o.order_no || ''} · ${fmtDT(o.created_at)}`;
-  $('dBadges').innerHTML = pill(o.status) + chBadge(o.channel) + `<span class="ch-badge ch-other">${PAY[o.payment]}</span>`;
+  const dd = dueDays(o);
+  $('dBadges').innerHTML = pill(o.status) + chBadge(o.channel) + `<span class="ch-badge ch-other">${PAY[o.payment] || o.payment}</span>` + (isUnpaid(o) ? `<span class="ch-badge" style="background:#fbe3e3;color:#c62828">nenaplaćeno${dd > 0 ? ` · kasni ${dd} d` : o.due_date ? ` · rok ${fmtDate(o.due_date)}` : ''}</span>` : o.paid_at && ['bank', 'invoice'].includes(o.payment) ? `<span class="ch-badge" style="background:#e3f0e4;color:#2e7d32">naplaćeno ${fmtDate(o.paid_at)}</span>` : '');
   document.querySelectorAll('#dTabs button').forEach(b => b.classList.toggle('active', b.dataset.dt === state.dTab));
   $('composer').style.display = state.dTab === 'activity' ? '' : 'none';
   if (state.dTab === 'info') {
@@ -428,7 +457,11 @@ function renderDrawer() {
         ${row('Email', esc(o.email))}
         ${row('Adresa', esc([o.address, [o.postal_code, o.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')))}
         ${row('Napomena', linkify(o.note))}
+        ${row('Faktura', esc(o.invoice_no))}
+        ${row('Rok plaćanja', o.due_date ? fmtDate(o.due_date) : '')}
+        ${row('Isporuka', { kurir: 'Kurir', licno: 'Lična dostava', preuzimanje: 'Preuzimanje' }[o.delivery] || '')}
       </div>
+      ${['bank', 'invoice'].includes(o.payment) ? `<div class="modal-actions" style="justify-content:flex-start;margin:0 0 6px">${o.paid_at ? `<button class="btn-ghost" data-paid="${o.id}" data-v="0">Poništi naplatu</button>` : `<button class="btn-gold" data-paid="${o.id}" data-v="1">✓ Naplaćeno danas</button>`}</div>` : ''}
       <div class="sec-title">Artikli</div>
       ${itemsOf(o.id).map(i => `<div class="list-row" style="cursor:default"><span><b>${esc(i.name)}</b> · ${esc(i.size || '')} × ${i.qty}</span><span class="num">${rsd(i.qty * i.unit_price)}</span></div>`).join('') || '<div class="page-sub">Nema artikala</div>'}
       <div class="sum-box">
@@ -517,7 +550,7 @@ function addItemRow(it = {}) {
   d.querySelector('[data-f=product]').addEventListener('change', (e) => {
     const p = product(e.target.value);
     d.querySelector('[data-f=variant]').innerHTML = p ? sizeOptions(p.id) : '';
-    d.querySelector('[data-f=price]').value = p ? p.sell_price : '';
+    d.querySelector('[data-f=price]').value = p ? tierPrice(p, orderTier()) : '';
     orderSum();
   });
   d.querySelector('.x-btn').addEventListener('click', () => { d.remove(); orderSum(); });
@@ -531,6 +564,25 @@ function readItems() {
     return { product_id: p.id, variant_id: v?.id || null, name: p.name, size: v?.size || null, qty: Math.max(1, parseInt(r.querySelector('[data-f=qty]').value) || 1), unit_price: n(r.querySelector('[data-f=price]').value), unit_cost: n(p.buy_price) };
   }).filter(Boolean);
 }
+function repriceRows() {
+  document.querySelectorAll('#itemRows .item-row').forEach(r => { const p = product(r.querySelector('[data-f=product]').value); if (p) r.querySelector('[data-f=price]').value = tierPrice(p, orderTier()); });
+  orderSum();
+}
+function orderPayHint() {
+  const pay = $('o_pay').value, h = $('o_payHint');
+  if (!h) return;
+  h.style.display = ['bank', 'invoice'].includes(pay) ? '' : 'none';
+  if (pay === 'invoice' && !$('o_due').value) { const d = new Date(); d.setDate(d.getDate() + 15); $('o_due').value = dayStr(d); }
+}
+function customerLookupHint() {
+  const c = findCustomerFor($('o_name').value, $('o_phone').value), h = $('o_custHint');
+  if (!h) return;
+  $('o_kindWrap').style.display = c ? 'none' : '';
+  if (!c) { h.innerHTML = $('o_phone').value.trim() || $('o_name').value.trim() ? 'Nov kupac, napraviće se sam iz porudžbine. Izaberi vrstu i cene.' : ''; return; }
+  const s = custStats(c), cd = custCadence(c, s);
+  h.innerHTML = `Postojeći kupac: <b>${esc(c.name)}</b>${c.kind ? ' · ' + esc(CKIND[c.kind] || c.kind) : ''} · ${TIER[c.price_tier] || 'Maloprodaja'} · ${s.count} porudžbina${cd && cd.cyc ? ` · ritam ${cd.cyc} d` : ''}`;
+  if ($('o_tier').value !== (c.price_tier || 'retail') && !state.editOrderId) { $('o_tier').value = c.price_tier || 'retail'; repriceRows(); }
+}
 function orderSum() {
   const its = readItems();
   const fake = { id: '__', shipping_price: $('o_shipPrice').value, shipping_cost: $('o_shipCost').value, packaging_cost: $('o_pack').value, discount: $('o_disc').value };
@@ -538,18 +590,24 @@ function orderSum() {
   const t = totals(fake); state.items = saved;
   $('orderSum').innerHTML = `<div><span>Kupac plaća</span><b>${rsd(t.revenue)}</b></div><div><span>Profit</span><b class="${t.profit >= 0 ? 'pos' : 'neg'}">${rsd(t.profit)}</b></div>`;
 }
-const OF = { o_name: 'customer_name', o_phone: 'phone', o_ig: 'instagram', o_email: 'email', o_addr: 'address', o_city: 'city', o_zip: 'postal_code', o_channel: 'channel', o_pay: 'payment', o_no: 'order_no', o_shipPrice: 'shipping_price', o_shipCost: 'shipping_cost', o_pack: 'packaging_cost', o_disc: 'discount', o_code: 'discount_code', o_courier: 'courier', o_track: 'tracking_no', o_note: 'note' };
+const OF = { o_name: 'customer_name', o_phone: 'phone', o_ig: 'instagram', o_email: 'email', o_addr: 'address', o_city: 'city', o_zip: 'postal_code', o_channel: 'channel', o_pay: 'payment', o_no: 'order_no', o_shipPrice: 'shipping_price', o_shipCost: 'shipping_cost', o_pack: 'packaging_cost', o_disc: 'discount', o_code: 'discount_code', o_courier: 'courier', o_track: 'tracking_no', o_note: 'note', o_invoice: 'invoice_no', o_due: 'due_date', o_delivery: 'delivery' };
+const orderTier = () => ($('o_tier') && $('o_tier').value) || 'retail';
 function openOrderModal(id) {
   const o = id ? order(id) : null;
   state.editOrderId = id || null;
   $('omTitle').textContent = o ? `Izmena ${o.order_no}` : 'Nova porudžbina';
-  const def = { channel: 'instagram', payment: 'cod', shipping_price: LS.get('crm_ship_price', 0), shipping_cost: LS.get('crm_ship_cost', 0), packaging_cost: packCostPerOrder() || LS.get('crm_pack', 0), discount: 0 };
+  const def = { channel: 'phone', payment: 'cod', shipping_price: LS.get('crm_ship_price', 0), shipping_cost: LS.get('crm_ship_cost', 0), packaging_cost: packCostPerOrder() || LS.get('crm_pack', 0), discount: 0 };
   Object.entries(OF).forEach(([el, f]) => { $(el).value = (o ? o[f] : def[f]) ?? ''; });
   let dl = $('custDl'); if (!dl) { dl = document.createElement('datalist'); dl.id = 'custDl'; document.body.appendChild(dl); $('o_name').setAttribute('list', 'custDl'); }
   dl.innerHTML = state.customers.map(c => `<option value="${esc(c.name)}">${esc(c.phone || c.instagram || '')}</option>`).join('');
+  const cst = o ? (o.customer_id && state.customers.find(x => x.id === o.customer_id)) : null;
+  $('o_custHint').innerHTML = '';
+  $('o_tier').value = cst ? (cst.price_tier || 'retail') : 'retail';
+  $('o_kind').value = ''; $('o_kindWrap').style.display = o ? 'none' : '';
+  $('o_paid').checked = !!(o && o.paid_at);
   $('itemRows').innerHTML = '';
   (o ? itemsOf(o.id) : [{}]).forEach(addItemRow);
-  orderSum();
+  orderSum(); orderPayHint();
   $('orderModal').classList.add('open');
   $('o_name').focus();
 }
@@ -561,6 +619,8 @@ async function saveOrder(e) {
   Object.entries(OF).forEach(([el, k]) => { const v = $(el).value.trim(); f[k] = v === '' ? null : v; });
   ['shipping_price', 'shipping_cost', 'packaging_cost', 'discount'].forEach(k => f[k] = n(f[k]));
   if (f.customer_name === null) return;
+  const oldO = state.editOrderId ? order(state.editOrderId) : null;
+  f.paid_at = $('o_paid').checked ? (oldO && oldO.paid_at ? oldO.paid_at : new Date().toISOString()) : null;
   $('omSave').disabled = true;
   try {
     const old = state.editOrderId ? order(state.editOrderId) : null;
@@ -587,7 +647,16 @@ async function saveOrder(e) {
       await log({ order_id: o.id, type: 'system', body: `Porudžbina kreirana (${CH[o.channel]})` });
       LS.set('crm_ship_price', f.shipping_price); LS.set('crm_ship_cost', f.shipping_cost); LS.set('crm_pack', f.packaging_cost);
     }
-    try { state.customers = await q(sb.from('p_customers').select('*').is('deleted_at', null)); const fresh = await q(sb.from('p_orders').select('customer_id').eq('id', o.id).single()); o.customer_id = fresh.customer_id; } catch (e2) {}
+    try {
+      state.customers = await q(sb.from('p_customers').select('*').is('deleted_at', null)); const fresh = await q(sb.from('p_orders').select('customer_id').eq('id', o.id).single()); o.customer_id = fresh.customer_id;
+      const c = state.customers.find(x => x.id === o.customer_id);
+      if (c && !old) {
+        const patch = {};
+        if (!c.kind && $('o_kind').value) patch.kind = $('o_kind').value;
+        if (custOrders(c.id).length <= 1 && (c.price_tier || 'retail') !== orderTier()) patch.price_tier = orderTier();
+        if (Object.keys(patch).length) { await q(sb.from('p_customers').update(patch).eq('id', c.id)); Object.assign(c, patch); }
+      }
+    } catch (e2) { console.warn(e2); }
     $('orderModal').classList.remove('open');
     renderAll();
     if (state.openOrderId) renderDrawer();
@@ -600,11 +669,12 @@ async function saveOrder(e) {
 function addSizeRow(v = {}) {
   const d = document.createElement('div');
   d.className = 'item-row';
-  d.style.gridTemplateColumns = '1fr 1fr 1fr 30px';
+  d.style.gridTemplateColumns = '1fr 1fr 1fr 1fr 30px';
   d.dataset.id = v.id || '';
-  d.innerHTML = `<input data-f="size" placeholder="veličina (22x8, 5, 0-2…)" value="${esc(v.size || '')}">
-    <input data-f="color" placeholder="oznaka (opciono)" value="${esc(v.color || '')}">
+  d.innerHTML = `<input data-f="size" placeholder="veličina (00, 2, 120, E4)" value="${esc(v.size || '')}">
+    <input data-f="color" list="posList" placeholder="prednja / zadnja" value="${esc(v.color || '')}">
     <input data-f="stock" type="number" min="0" placeholder="kom" value="${v.stock ?? 0}">
+    <input data-f="min" type="number" min="0" placeholder="upozori ≤" value="${v.min_stock ?? ''}" title="granica upozorenja za ovu veličinu (prazno = opšta)">
     <button type="button" class="x-btn">×</button>`;
   d.querySelector('.x-btn').addEventListener('click', () => d.remove());
   $('sizeRows').appendChild(d);
@@ -612,13 +682,15 @@ function addSizeRow(v = {}) {
 function priceHint() {
   const b = n($('p_buy').value), s = n($('p_sell').value);
   const h = $('p_hint'); h.className = 'hint';
-  if (!b || !s) { h.textContent = 'Pravilo: prodajna 2,5x do 3x nabavne, završava se na 90.'; return; }
-  const x = s / b, notes = [`Marža ${rsd(s - b)} (${pct((s - b) / s)}), ${x.toFixed(2)}x`];
-  if (x < 2.5 || x > 3) { notes.push(`van 2,5x do 3x (${rsd(b * 2.5)} do ${rsd(b * 3)})`); h.classList.add('warn'); }
-  if (Math.round(s) % 100 !== 90) { notes.push('cena ne završava na 90'); h.classList.add('warn'); }
+  const w = n($('p_whole').value);
+  if (!b || !s) { h.textContent = 'Nabavna = stvarna cena po komadu sa vozarinom i carinom (upiše je uvozna tura). Veleprodajna za potkivače je obično 25–30% ispod maloprodajne.'; return; }
+  const notes = [`Malo: marža ${rsd(s - b)} (${pct((s - b) / s)}), ${(s / b).toFixed(1)}x`];
+  if (w) { notes.push(`Velo: marža ${rsd(w - b)} (${pct((w - b) / w)}), ${(w / b).toFixed(1)}x, ${pct(1 - w / s)} ispod malo`); if (w <= b) { notes.push('velo cena je ispod nabavne!'); h.classList.add('warn'); } }
+  else notes.push(`predlog velo: ${rsd(Math.round(s * 0.72 / 10) * 10)}`);
+  if (s <= b) { notes.push('prodajna je ispod nabavne!'); h.classList.add('warn'); }
   h.textContent = notes.join(' · ');
 }
-const PF = { p_name: 'name', p_cat: 'category', p_buy: 'buy_price', p_sell: 'sell_price', p_cmp: 'compare_price', p_sup: 'supplier', p_maker: 'maker', p_unit: 'unit', p_mat: 'material', p_img: 'image_url', p_status: 'status', p_note: 'note' };
+const PF = { p_name: 'name', p_cat: 'category', p_buy: 'buy_price', p_sell: 'sell_price', p_cmp: 'compare_price', p_whole: 'wholesale_price', p_profile: 'profile', p_clips: 'clips', p_moq: 'moq', p_weight: 'weight_g', p_sup: 'supplier', p_maker: 'maker', p_unit: 'unit', p_mat: 'material', p_img: 'image_url', p_status: 'status', p_note: 'note' };
 function openProductModal(id) {
   const p = id ? product(id) : null;
   state.editProductId = id || null;
@@ -636,7 +708,8 @@ async function saveProduct(e) {
   Object.entries(PF).forEach(([el, k]) => { const v = $(el).value.trim(); f[k] = v === '' ? null : v; });
   f.name = f.name.toUpperCase();
   f.buy_price = n(f.buy_price); f.sell_price = n(f.sell_price); f.compare_price = f.compare_price === null ? null : n(f.compare_price);
-  const sizes = [...document.querySelectorAll('#sizeRows .item-row')].map(r => ({ id: r.dataset.id || null, size: r.querySelector('[data-f=size]').value.trim().toUpperCase(), color: r.querySelector('[data-f=color]').value.trim() || null, stock: parseInt(r.querySelector('[data-f=stock]').value) || 0 })).filter(s => s.size);
+  f.wholesale_price = f.wholesale_price === null ? null : n(f.wholesale_price); f.moq = f.moq === null ? 1000 : parseInt(f.moq) || 1000; f.weight_g = f.weight_g === null ? null : parseInt(f.weight_g) || null;
+  const sizes = [...document.querySelectorAll('#sizeRows .item-row')].map(r => ({ id: r.dataset.id || null, size: r.querySelector('[data-f=size]').value.trim(), color: r.querySelector('[data-f=color]').value.trim() || null, stock: parseInt(r.querySelector('[data-f=stock]').value) || 0, min_stock: r.querySelector('[data-f=min]').value === '' ? null : parseInt(r.querySelector('[data-f=min]').value) || 0 })).filter(s => s.size);
   try {
     let p;
     if (state.editProductId) {
@@ -650,7 +723,7 @@ async function saveProduct(e) {
     const removed = variantsOf(p.id).filter(v => !keep.includes(v.id));
     if (removed.length) await q(sb.from('p_variants').update({ deleted_at: new Date().toISOString(), deleted_by: state.user.display }).in('id', removed.map(v => v.id)));
     for (const s of sizes) {
-      const row = { product_id: p.id, size: s.size, color: s.color, stock: s.stock };
+      const row = { product_id: p.id, size: s.size, color: s.color, stock: s.stock, min_stock: s.min_stock };
       if (s.id) await q(sb.from('p_variants').update(row).eq('id', s.id));
       else await q(sb.from('p_variants').insert(row));
     }
@@ -708,7 +781,7 @@ async function addComment(input) {
 /* ---------- GARDEROBA: upozorenja + feed ---------- */
 function stockAlerts() {
   const out = [];
-  state.products.filter(p => p.status === 'active').forEach(p => variantsOf(p.id).forEach(v => { if (v.stock <= lowT()) out.push({ p, v }); }));
+  state.products.filter(p => p.status === 'active').forEach(p => variantsOf(p.id).forEach(v => { if (v.stock <= (v.min_stock ?? lowT())) out.push({ p, v }); }));
   return out.sort((a, b) => a.v.stock - b.v.stock);
 }
 function packAlerts() { return state.pack.filter(x => x.stock <= x.min_stock); }
@@ -1683,10 +1756,11 @@ function filteredCustomers() {
     const seg = state.custSeg;
     if (seg === 'new' && s.count !== 1) return false;
     if (seg === 'repeat' && s.count < 2) return false;
-    if (seg === 'club' && !['klub', 'vip'].includes(s.tier.key)) return false;
-    if (seg === 'vip' && s.tier.key !== 'vip') return false;
+    if (seg === 'call') { const cd = custCadence(c, s); if (!cd || !cd.late) return false; }
+    if (seg === 'wholesale' && c.price_tier !== 'wholesale') return false;
+    if (seg === 'potkivac' && c.kind !== 'potkivac') return false;
     if (seg === 'idle' && !(s.idle != null && s.idle >= 60)) return false;
-    if (seg === 'reward' && s.points < n(L.reward_points)) return false;
+    if (seg === 'unpaid' && !custOrders(c.id).some(isUnpaid)) return false;
     if (qq && !fold([c.name, c.phone, c.instagram, c.email, c.city, (c.tags || []).join(' ')].join(' ')).includes(qq)) return false;
     return true;
   });
@@ -1702,7 +1776,7 @@ function renderCustomers() {
   $('kpiCust').innerHTML = stat('Kupaca', state.customers.length, `${buyers} sa bar jednom porudžbinom`, 'customers') +
     stat('Vraćaju se', buyers ? pct(repeat / buyers) : '—', `<b>${repeat}</b> kupilo 2+ puta`) +
     stat('Vrednost kupca', buyers ? rsd(spend / buyers) : '—', 'prosečno potrošeno po kupcu') +
-    stat('U klubu', club, `${all.filter(x => x.s.points >= n(L.reward_points)).length} čeka nagradu`);
+    stat('Za poziv', callList().length, 'kasne sa uobičajenom porudžbinom');
   document.querySelectorAll('#custViewSeg button').forEach(b => b.classList.toggle('active', b.dataset.view === state.custView));
   document.querySelectorAll('#custSeg button').forEach(b => b.classList.toggle('active', b.dataset.s === state.custSeg));
   $('custList').style.display = state.custView === 'list' ? '' : 'none';
@@ -1715,8 +1789,8 @@ function renderCustomers() {
     $('custTbody').innerHTML = list.map(({ c, s }) => `<tr data-cust="${c.id}">
       <td><div class="prod-cell"><div class="avatar ${s.tier.key === 'vip' ? 'vip' : ''}" style="width:34px;height:34px;font-size:14px;border-radius:10px">${esc(c.name.charAt(0).toUpperCase())}</div><div><div class="lead-name">${esc(c.name)}</div><div class="lead-social">${esc(c.city || '')}${(c.tags || []).length ? ' · ' + c.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('') : ''}</div></div></div></td>
       <td class="contact">${c.phone ? `<div>${esc(c.phone)}</div>` : ''}${c.instagram ? `<div class="page-sub">${esc(c.instagram)}</div>` : ''}${!c.phone && !c.instagram && c.email ? `<div class="page-sub">${esc(c.email)}</div>` : ''}</td>
-      <td>${tierBadge(s.tier)}</td><td class="num">${s.count}${s.rets ? `<span class="page-sub"> · ${s.rets} povrat</span>` : ''}</td><td class="num">${rsd(s.spend)}</td>
-      <td class="num">${s.points}${s.points >= n(L.reward_points) ? ' <span class="tab-badge live" style="margin:0">nagrada</span>' : ''}</td>
+      <td>${c.kind ? `<div>${esc(CKIND[c.kind] || c.kind)}</div>` : ''}<span class="tier ${c.price_tier === 'wholesale' ? 'klub' : 'nova'}"><span class="dot"></span>${TIER[c.price_tier] || 'Maloprodaja'}</span></td><td class="num">${s.count}${s.rets ? `<span class="page-sub"> · ${s.rets} rekl.</span>` : ''}</td><td class="num">${rsd(s.spend)}</td>
+      <td>${(() => { const cd = custCadence(c, s); if (!cd) return '<span class="page-sub">—</span>'; if (cd.once) return cd.late ? `<span class="neg">kupio jednom, pre ${cd.idle} d</span>` : `<span class="page-sub">kupio jednom</span>`; return cd.late ? `<span class="neg">kasni ${cd.over} d (ritam ${cd.cyc} d)</span>` : `<span class="page-sub">oko ${fmtDate(cd.next)} (ritam ${cd.cyc} d)</span>`; })()}</td>
       <td class="date-cell">${s.last ? `${fmtDate(s.last)}${s.idle >= 60 ? `<div class="neg" style="font-size:11px">${s.idle} d bez kupovine</div>` : ''}` : '—'}</td></tr>`).join('')
       || `<tr><td colspan="7" class="empty">Još nema kupaca. Prave se sami iz porudžbina, ili dodaj ručno.</td></tr>`;
   }
@@ -1811,7 +1885,24 @@ async function deleteCode() {
   try { await softDelete('p_discount_codes', state.editCodeId); state.codes = state.codes.filter(x => x.id !== state.editCodeId); $('codeModal').classList.remove('open'); renderAll(); } catch (e) { fail(e); }
 }
 /* kupac: modal */
-const CUF = ['name', 'phone', 'email', 'instagram', 'city', 'address', 'postal_code', 'birthday', 'source', 'note'];
+const CUF = ['name', 'phone', 'email', 'instagram', 'city', 'address', 'postal_code', 'birthday', 'source', 'note', 'kind', 'company', 'pib', 'price_tier', 'cycle_days'];
+function custCadence(c, s) {
+  const os = (s.all || []).filter(o => !NO_REVENUE.includes(o.status)).slice().sort((a, b) => a.created_at.localeCompare(b.created_at));
+  if (!os.length) return null;
+  const cyc = n(c.cycle_days) || (os.length >= 2 ? Math.max(7, Math.round((new Date(os[os.length - 1].created_at) - new Date(os[0].created_at)) / 864e5 / (os.length - 1))) : 0);
+  const last = new Date(os[os.length - 1].created_at);
+  if (!cyc) { const idle = Math.floor((Date.now() - last) / 864e5); return { cyc: 0, next: null, over: idle - 60, late: idle >= 60, once: true, idle }; }
+  const next = new Date(last); next.setDate(next.getDate() + cyc);
+  const over = Math.floor((Date.now() - next) / 864e5);
+  return { cyc, next, over, late: over > Math.max(5, Math.round(cyc * 0.25)), once: false };
+}
+function callList() {
+  return state.customers.map(c => { const s = custStats(c); const cd = custCadence(c, s); return cd && cd.late ? { c, s, cd } : null; }).filter(Boolean).sort((a, b) => (b.s.spend - a.s.spend));
+}
+function findCustomerFor(name, phone) {
+  const ph = String(phone || '').replace(/\D/g, '').replace(/^381/, '0'), nm = fold(name);
+  return state.customers.find(c => ph && String(c.phone || '').replace(/\D/g, '').replace(/^381/, '0') === ph) || (nm ? state.customers.find(c => fold(c.name) === nm) : null) || null;
+}
 function openCustModal(id) {
   state.editCustId = id || null; state.custTab = 'profile';
   renderCustHead(); renderCustBody();
@@ -1834,13 +1925,19 @@ function renderCustBody() {
   if (t === 'profile') {
     $('custBody').innerHTML = `<form id="custForm">
       <div class="frow"><div class="field"><label>Ime i prezime *</label><input id="cu_name" required></div><div class="field"><label>Telefon</label><input id="cu_phone"></div></div>
+      <div class="frow3">
+        <div class="field"><label>Vrsta kupca</label><select id="cu_kind"><option value="">—</option>${Object.entries(CKIND).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
+        <div class="field"><label>Cene</label><select id="cu_price_tier"><option value="retail">Maloprodaja</option><option value="wholesale">Veleprodaja (potkivači, klubovi)</option></select></div>
+        <div class="field"><label>Poručuje na svakih (dana)</label><input id="cu_cycle_days" type="number" min="1" placeholder="auto iz istorije"></div>
+      </div>
+      <div class="frow"><div class="field"><label>Firma (za fakturu)</label><input id="cu_company" placeholder="naziv firme / gazdinstva"></div><div class="field"><label>PIB / BPG</label><input id="cu_pib"></div></div>
       <div class="frow"><div class="field"><label>Instagram</label><input id="cu_instagram" placeholder="@"></div><div class="field"><label>Email</label><input id="cu_email"></div></div>
       <div class="field"><label>Adresa</label><input id="cu_address"></div>
       <div class="frow3"><div class="field"><label>Grad</label><input id="cu_city"></div><div class="field"><label>Poštanski broj</label><input id="cu_postal_code"></div><div class="field"><label>Rođendan</label><input id="cu_birthday" type="date"></div></div>
-      <div class="frow"><div class="field"><label>Odakle je došla</label><input id="cu_source" list="sources" placeholder="Instagram, preporuka, reklama…"><datalist id="sources"><option>Instagram</option><option>Shopify</option><option>Preporuka</option><option>Meta reklama</option><option>Influenser</option></datalist></div>
-        <div class="field"><label>Oznake (zarezom)</label><input id="cu_tags" placeholder="influenser, drugarica, problematična…"></div></div>
-      <div class="field"><label>Beleška o kupcu</label><textarea id="cu_note" placeholder="Šta voli, koje veličine nosi, kako da joj priđemo"></textarea></div>
-      <label class="check" style="font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="cu_vip"> VIP (ručno, bez obzira na pravila kluba)</label>
+      <div class="frow"><div class="field"><label>Odakle je došla</label><input id="cu_source" list="sources" placeholder="Đole, preporuka, Instagram, sajt…"><datalist id="sources"><option>Đole</option><option>Preporuka potkivača</option><option>Instagram</option><option>Sajt</option><option>Meta reklama</option><option>Influenser</option></datalist></div>
+        <div class="field"><label>Oznake (zarezom)</label><input id="cu_tags" placeholder="kasači, Vojvodina, plaća kasno…"></div></div>
+      <div class="field"><label>Beleška o kupcu</label><textarea id="cu_note" placeholder="Koje modele i veličine radi, koliko konja mesečno, kako plaća, ko ga je preporučio"></textarea></div>
+      <label class="check" style="font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="cu_vip"> Ključni kupac (uvek prioritet)</label>
       <div class="modal-actions">${c ? '<button type="button" class="fu-remove" id="cuDelete">Obriši (arhiva)</button>' : ''}<button type="button" class="btn-ghost" data-close>Zatvori</button><button class="btn-gold" type="submit">Sačuvaj</button></div></form>`;
     CUF.forEach(f => $('cu_' + f).value = c ? (c[f] ?? '') : '');
     $('cu_tags').value = c ? (c.tags || []).join(', ') : ''; $('cu_vip').checked = !!c?.vip;
@@ -2606,12 +2703,20 @@ function bindEvents() {
   $('nfQ').addEventListener('input', renderNotifHistory);
   $('nfMore').addEventListener('click', async () => { await loadNotifs(true); renderNotifHistory(); renderTray(); });
   // kupci
+  $('o_tier').addEventListener('change', repriceRows);
+  $('o_pay').addEventListener('change', orderPayHint);
+  ['o_name', 'o_phone'].forEach(id => $(id).addEventListener('change', customerLookupHint));
+  $('guideBtn').addEventListener('click', () => $('guideModal').classList.add('open'));
+  $('guideTabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; document.querySelectorAll('#guideTabs button').forEach(x => x.classList.toggle('active', x === b)); document.querySelectorAll('.g-pane').forEach(p => p.style.display = p.dataset.gp === b.dataset.g ? '' : 'none'); });
   $('newImpBtn').addEventListener('click', () => openImportModal());
   $('impForm').addEventListener('submit', saveImport);
   $('impDelete').addEventListener('click', deleteImport);
   $('impSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; state.impF = b.dataset.f; renderImports(); });
   $('impAddRow').addEventListener('click', () => addImpRow());
-  ['im_fx', 'im_freight_cost', 'im_duty_cost', 'im_other_cost'].forEach(id => $(id).addEventListener('input', impSum));
+  ['im_fx', 'im_freight_cost', 'im_duty_cost', 'im_other_cost', 'im_vat_cost', 'im_advance_pct'].forEach(id => $(id).addEventListener('input', impSum));
+  $('im_vat_rec').addEventListener('change', impSum);
+  $('impCalcDuty').addEventListener('click', impCalcDuty);
+  $('coverMonths').addEventListener('change', async (e) => { const v = Math.max(1, parseInt(e.target.value) || 4); try { await q(sb.from('p_settings').upsert({ key: 'cover_months', value: String(v) })); const st = state.settings.find(x => x.key === 'cover_months'); if (st) st.value = String(v); else state.settings.push({ key: 'cover_months', value: String(v) }); renderReorder(); } catch (err) { fail(err); } });
   $('newCustBtn').addEventListener('click', () => openCustModal());
   $('newCodeBtn').addEventListener('click', () => openCodeModal());
   $('codeForm').addEventListener('submit', saveCode);
@@ -2637,6 +2742,7 @@ function bindEvents() {
     const np = e.target.closest('[data-newpost]'); if (np) return openPostModal(null, np.dataset.newpost);
     const cm = e.target.closest('[data-cal]'); if (cm) { const m = state.calMonth; state.calMonth = new Date(m.getFullYear(), m.getMonth() + +cm.dataset.cal, 1); return renderPosts(); }
     if (e.target.closest('a')) return;
+    const pd = e.target.closest('[data-paid]'); if (pd) { e.stopPropagation(); return markPaid(pd.dataset.paid, pd.dataset.v === '1'); }
     const ie = e.target.closest('[data-impedit]'); if (ie) { e.stopPropagation(); return openImportModal(ie.dataset.impedit); }
     const ir = e.target.closest('[data-imprecv]'); if (ir) { e.stopPropagation(); return receiveImport(ir.dataset.imprecv); }
     const ic = e.target.closest('[data-imp]'); if (ic) return openImportModal(ic.dataset.imp);
@@ -2703,7 +2809,7 @@ function bindEvents() {
   $('newProductBtn').addEventListener('click', () => openProductModal());
   $('addSizeBtn').addEventListener('click', () => addSizeRow());
   $('prodForm').addEventListener('submit', saveProduct);
-  ['p_buy', 'p_sell'].forEach(id => $(id).addEventListener('input', priceHint));
+  ['p_buy', 'p_sell', 'p_whole'].forEach(id => $(id).addEventListener('input', priceHint));
   $('pmDelete').addEventListener('click', () => deleteProduct().catch(fail));
 
   // v2 sekcije
@@ -2773,8 +2879,9 @@ function bindEvents() {
 }
 
 /* ---------- NABAVKA I UVOZ ---------- */
+const QC_LIST = ['Kovano, ne liveno (savijanje u mengelama)', 'Rupe probijene, ne bušene', 'Ekser se ne klati u rupi (E3–E6)', 'Ista debljina po obodu (do 0,5 mm razlike)', 'Kapna izvučena iz materijala, ne zavarena', 'Bez oštrih ivica i srha', 'Prednja i zadnja se stvarno razlikuju', 'Mere odgovaraju crtežu u mm', 'Cela šarža izgleda isto'];
 const IMP_ST = [
-  { key: 'planned', label: 'U planu' }, { key: 'ordered', label: 'Naručeno' }, { key: 'paid', label: 'Plaćeno' },
+  { key: 'planned', label: 'U planu' }, { key: 'sample', label: 'Uzorci' }, { key: 'ordered', label: 'Naručeno' }, { key: 'paid', label: 'Plaćeno' },
   { key: 'transit', label: 'U transportu' }, { key: 'customs', label: 'Carina' }, { key: 'arrived', label: 'Stiglo' }, { key: 'cancelled', label: 'Otkazano' },
 ];
 const IMPST = Object.fromEntries(IMP_ST.map(x => [x.key, x.label]));
@@ -2784,14 +2891,16 @@ function impTotals(im) {
   const its = impItems(im.id), fx = n(im.fx) || 1;
   const goods = its.reduce((a, i) => a + i.qty * n(i.unit_cost), 0);          // u valuti ture
   const goodsRsd = goods * fx;
-  const extra = n(im.freight_cost) + n(im.duty_cost) + n(im.other_cost);      // uvek u RSD
+  const vat = im.vat_recoverable ? 0 : n(im.vat_cost);                          // PDV je trošak samo dok nismo u sistemu PDV-a
+  const extra = n(im.freight_cost) + n(im.duty_cost) + n(im.other_cost) + vat;  // uvek u RSD
   const qty = its.reduce((a, i) => a + i.qty, 0);
   const unit = (i) => {                                                        // nabavna po komadu, sa svim troškovima
     const base = n(i.unit_cost) * fx;
     const share = goodsRsd ? (base / goodsRsd) * extra : (qty ? extra / qty : 0);
     return base + share;
   };
-  return { its, goods, goodsRsd, extra, qty, unit, total: goodsRsd + extra, perPiece: qty ? (goodsRsd + extra) / qty : 0 };
+  const qc = im.qc && typeof im.qc === 'object' ? Object.values(im.qc).filter(Boolean).length : 0;
+  return { its, goods, goodsRsd, extra, vat, qty, unit, qc, total: goodsRsd + extra, perPiece: qty ? (goodsRsd + extra) / qty : 0 };
 }
 function impCard(im) {
   const T = impTotals(im), late = im.eta && !im.received && new Date(im.eta) < new Date() && im.status !== 'cancelled';
@@ -2804,10 +2913,12 @@ function impCard(im) {
     <div class="imp-chips">
       <span>${T.qty} kom</span>
       <span>roba ${rsd(T.goodsRsd)}${im.currency !== 'RSD' ? ` (${Math.round(T.goods).toLocaleString('sr-Latn-RS')} ${esc(im.currency)})` : ''}</span>
-      <span>vozarina ${rsd(im.freight_cost)}</span><span>carina ${rsd(im.duty_cost)}</span>${n(im.other_cost) ? `<span>ostalo ${rsd(im.other_cost)}</span>` : ''}
+      <span>vozarina ${rsd(im.freight_cost)}</span><span>carina ${rsd(im.duty_cost)}</span>${n(im.vat_cost) ? `<span>PDV ${rsd(im.vat_cost)}${im.vat_recoverable ? ' (odbija se)' : ''}</span>` : ''}${n(im.other_cost) ? `<span>ostalo ${rsd(im.other_cost)}</span>` : ''}
       <span class="imp-total">ukupno ${rsd(T.total)}</span>
       <span class="imp-unit">nabavna ~${rsd(T.perPiece)}/kom</span>
       ${late ? '<span class="imp-late">kasni</span>' : ''}
+      ${!im.received && im.status !== 'cancelled' ? `<span>${im.advance_paid_at ? `avans ${im.advance_pct}% plaćen ${fmtDate(im.advance_paid_at)}` : `avans ${im.advance_pct || 30}% nije plaćen`}${im.paid_at ? ' · ostatak plaćen' : ''}</span>` : ''}
+      ${T.its.length ? `<span class="${T.qc === QC_LIST.length ? 'imp-qc-ok' : T.qc ? '' : 'imp-late'}">kontrola uzorka ${T.qc}/${QC_LIST.length}</span>` : ''}
     </div>
     ${T.its.length ? `<table class="imp-items"><thead><tr><th>Model</th><th>Veličina</th><th class="num">Kom</th><th class="num">Cena (${esc(im.currency)})</th><th class="num">Nabavna po kom</th><th class="num">Ukupno</th></tr></thead><tbody>
       ${T.its.map(i => `<tr><td>${esc(i.name || prodName(i.product_id))}</td><td>${esc(i.size || '—')}</td><td class="num">${i.qty}</td><td class="num">${n(i.unit_cost).toLocaleString('sr-Latn-RS')}</td><td class="num">${rsd(T.unit(i))}</td><td class="num">${rsd(T.unit(i) * i.qty)}</td></tr>`).join('')}
@@ -2820,6 +2931,32 @@ function impCard(im) {
     </div>
   </div>`;
 }
+function reorderPlan() {
+  const months = n(setting('cover_months', '4')) || 4;
+  const since = Date.now() - 90 * 864e5, sold = {}, onWay = {};
+  state.items.forEach(i => { const o = order(i.order_id); if (!o || NO_REVENUE.includes(o.status) || new Date(o.created_at) < since) return; const k = i.variant_id || 'p:' + i.product_id; sold[k] = (sold[k] || 0) + i.qty; });
+  state.impItems.forEach(i => { const im = imp(i.import_id); if (!im || im.received || im.status === 'cancelled') return; const k = i.variant_id || 'p:' + i.product_id; onWay[k] = (onWay[k] || 0) + i.qty; });
+  const rows = [];
+  state.products.filter(p => p.status !== 'archived').forEach(p => variantsOf(p.id).forEach(v => {
+    const s90 = sold[v.id] || 0, perMonth = s90 / 3, way = onWay[v.id] || 0, have = v.stock + way;
+    rows.push({ p, v, s90, perMonth, way, have, cover: perMonth ? have / perMonth : null, need: Math.max(0, Math.ceil(perMonth * months - have)) });
+  }));
+  const perModel = {}; rows.forEach(r => { perModel[r.p.id] = (perModel[r.p.id] || 0) + r.need; });
+  return { months, rows, perModel };
+}
+function renderReorder() {
+  const el = $('reorderBox'); if (!el) return;
+  const R = reorderPlan();
+  const active = R.rows.filter(r => r.s90 > 0 || r.need > 0 || r.v.stock <= (r.v.min_stock ?? lowT()));
+  const anySales = R.rows.some(r => r.s90 > 0);
+  $('coverMonths').value = R.months;
+  if (!anySales) { el.innerHTML = '<div class="page-sub">Predlog se pravi iz prodaje u poslednjih 90 dana. Kad krenu porudžbine, ovde ćeš videti koliko čega da poručiš da pokrije naredne mesece.</div>'; return; }
+  const byModel = {}; active.forEach(r => (byModel[r.p.id] = byModel[r.p.id] || []).push(r));
+  el.innerHTML = Object.entries(byModel).map(([pid, rs]) => { const p = product(pid), tot = R.perModel[pid] || 0, moq = n(p.moq || 1000); return `<div class="reorder-model"><div class="reorder-head"><b>${esc(p.name)}</b><span class="${tot && tot < moq ? 'neg' : ''}">${tot ? `predlog ${tot} kom` : 'ne treba'}${tot && tot < moq ? ` · ispod MOQ ${moq}, dopuni do minimuma ili spoji sa drugom turom` : ''}</span></div>
+    <table class="imp-items"><thead><tr><th>Veličina</th><th class="num">Prodato 90 d</th><th class="num">Mesečno</th><th class="num">Na stanju</th><th class="num">Na putu</th><th class="num">Dovoljno za</th><th class="num">Poručiti</th></tr></thead><tbody>
+    ${rs.map(r => `<tr><td>${esc(r.v.size)}${r.v.color ? ' ' + esc(r.v.color) : ''}</td><td class="num">${r.s90}</td><td class="num">${r.perMonth ? r.perMonth.toFixed(1) : '—'}</td><td class="num">${r.v.stock}</td><td class="num">${r.way || ''}</td><td class="num ${r.cover != null && r.cover < 1.5 ? 'neg' : ''}">${r.cover == null ? '—' : r.cover > 24 ? '2+ god' : r.cover.toFixed(1) + ' mes'}</td><td class="num"><b>${r.need || ''}</b></td></tr>`).join('')}
+    </tbody></table></div>`; }).join('');
+}
 function renderImports() {
   if (!$('impList')) return;
   const qq = fold(state.q);
@@ -2829,6 +2966,7 @@ function renderImports() {
   document.querySelectorAll('#impSeg button').forEach(b => b.classList.toggle('active', b.dataset.f === state.impF));
   const open = state.imps.filter(x => !x.received && x.status !== 'cancelled');
   const onWay = open.filter(x => ['ordered', 'paid', 'transit', 'customs'].includes(x.status));
+  const waitingAdvance = open.filter(x => ['ordered'].includes(x.status) && !x.advance_paid_at);
   const invested = state.imps.filter(x => x.received).reduce((a, x) => a + impTotals(x).total, 0);
   const pending = onWay.reduce((a, x) => a + impTotals(x).total, 0);
   const pcs = onWay.reduce((a, x) => a + impTotals(x).qty, 0);
@@ -2839,11 +2977,12 @@ function renderImports() {
     ['Prosečna nabavna', state.imps.filter(x => x.received).length ? rsd(state.imps.filter(x => x.received).reduce((a, x) => a + impTotals(x).total, 0) / Math.max(1, state.imps.filter(x => x.received).reduce((a, x) => a + impTotals(x).qty, 0))) : '—', 'po komadu, sve ture'],
   ].map(([t, v, s]) => `<div class="stat"><div class="stat-label"><span class="dot"></span>${t}</div><div class="stat-value">${v}</div><div class="stat-sub">${s}</div></div>`).join('');
   const late = open.filter(x => x.eta && new Date(x.eta) < new Date());
-  $('impAlerts').innerHTML = late.map(x => `<div class="alert" data-imp="${x.id}"><div class="a-ic">!</div><div><div class="a-t">${esc(x.code || 'Tura')} · ${esc(x.supplier)}</div><div class="a-s">Rok je bio ${fmtDate(x.eta)}, a tura još nije primljena. Proveri kod dobavljača ili špeditera.</div></div></div>`).join('');
+  $('impAlerts').innerHTML = waitingAdvance.map(x => `<div class="alert" data-imp="${x.id}"><div class="a-ic">%</div><div><div class="a-t">${esc(x.code || 'Tura')} · ${esc(x.supplier)}</div><div class="a-s">Naručeno, avans još nije plaćen. Pre avansa uzorak mora da prođe kontrolu (${impTotals(x).qc}/${QC_LIST.length} stavki štiklirano).</div></div></div>`).join('') + late.map(x => `<div class="alert" data-imp="${x.id}"><div class="a-ic">!</div><div><div class="a-t">${esc(x.code || 'Tura')} · ${esc(x.supplier)}</div><div class="a-s">Rok je bio ${fmtDate(x.eta)}, a tura još nije primljena. Proveri kod dobavljača ili špeditera.</div></div></div>`).join('');
   $('impCount').textContent = `${list.length} tura`;
   $('impList').innerHTML = list.map(impCard).join('') || '<div class="panel"><span class="page-sub">Još nema uvoznih tura. Klikni „Nova tura“ i upiši šta si naručio.</span></div>';
+  renderReorder();
 }
-const IMPF = ['code', 'supplier', 'country', 'status', 'currency', 'fx', 'freight_cost', 'duty_cost', 'other_cost', 'ordered_at', 'paid_at', 'eta', 'arrived_at', 'tracking', 'note'];
+const IMPF = ['code', 'supplier', 'country', 'status', 'currency', 'fx', 'freight_cost', 'duty_cost', 'duty_pct', 'vat_cost', 'other_cost', 'ordered_at', 'paid_at', 'eta', 'arrived_at', 'tracking', 'note', 'advance_pct', 'advance_paid_at', 'lead_days'];
 function addImpRow(it = {}) {
   const d = document.createElement('div');
   d.className = 'item-row imp-row';
@@ -2871,16 +3010,30 @@ function readImpItems() {
 function impSum() {
   const its = readImpItems(), fx = n($('im_fx').value) || 1;
   const goods = its.reduce((a, i) => a + i.qty * n(i.unit_cost), 0) * fx;
-  const extra = n($('im_freight_cost').value) + n($('im_duty_cost').value) + n($('im_other_cost').value);
+  const vatRec = $('im_vat_rec').checked, vat = vatRec ? 0 : n($('im_vat_cost').value);
+  const extra = n($('im_freight_cost').value) + n($('im_duty_cost').value) + n($('im_other_cost').value) + vat;
   const qty = its.reduce((a, i) => a + i.qty, 0);
-  $('impFormSum').innerHTML = `<div><span>Roba</span><b>${rsd(goods)}</b></div><div><span>Troškovi</span><b>${rsd(extra)}</b></div><div><span>Ukupno</span><b>${rsd(goods + extra)}</b></div><div><span>Nabavna po komadu</span><b>${qty ? rsd((goods + extra) / qty) : '—'}</b></div>`;
+  const moqWarn = (() => { const per = {}; its.forEach(i => { per[i.product_id] = (per[i.product_id] || 0) + i.qty; }); return Object.entries(per).filter(([pid, q]) => q < n(product(pid)?.moq || 1000)).map(([pid, q]) => `${product(pid)?.name}: ${q} kom (MOQ ${n(product(pid)?.moq || 1000)})`); })();
+  $('impFormSum').innerHTML = `<div><span>Roba</span><b>${rsd(goods)}</b></div><div><span>Vozarina, carina, ostalo${vat ? ', PDV' : ''}</span><b>${rsd(extra)}</b></div><div class="tot"><span>Ukupno</span><b>${rsd(goods + extra)}</b></div><div><span>Nabavna po komadu</span><b>${qty ? rsd((goods + extra) / qty) : '—'}</b></div><div><span>Avans ${n($('im_advance_pct').value) || 30}% od robe</span><b>${rsd(goods * (n($('im_advance_pct').value) || 30) / 100)}</b></div>${moqWarn.length ? `<div class="page-sub neg" style="grid-column:1/-1">Ispod fabričkog minimuma: ${moqWarn.join('; ')}. Očekuj odbijanje ili cenu 40–80% veću.</div>` : ''}`;
+}
+function impCalcDuty() {
+  const its = readImpItems(), fx = n($('im_fx').value) || 1;
+  const goods = its.reduce((a, i) => a + i.qty * n(i.unit_cost), 0) * fx, freight = n($('im_freight_cost').value);
+  const pct = n($('im_duty_pct').value);
+  const duty = Math.round((goods + freight) * pct / 100);
+  const vat = Math.round((goods + freight + duty) * 0.2);
+  $('im_duty_cost').value = duty; $('im_vat_cost').value = vat; impSum();
+  toast(`Carina ${pct}% na robu + vozarinu, PDV 20% na sve zajedno`);
 }
 function openImportModal(id) {
   const im = id ? imp(id) : null;
   state.editImpId = id || null;
   $('imTitle').textContent = im ? `${im.code || 'Tura'} · ${im.supplier}` : 'Nova tura uvoza';
-  IMPF.forEach(f => { const el = $('im_' + f); if (el) el.value = im ? (im[f] ?? '') : (f === 'status' ? 'ordered' : f === 'currency' ? 'EUR' : ''); });
-  if (!im) { $('im_code').value = 'UVOZ-' + String(state.imps.length + 1).padStart(2, '0'); $('im_ordered_at').value = dayStr(new Date()); }
+  IMPF.forEach(f => { const el = $('im_' + f); if (el) el.value = im ? (im[f] ?? '') : (f === 'status' ? 'planned' : f === 'currency' ? 'EUR' : f === 'advance_pct' ? 30 : f === 'lead_days' ? 30 : ''); });
+  if (!im) { $('im_code').value = 'UVOZ-' + String(state.imps.length + 1).padStart(2, '0'); $('im_ordered_at').value = dayStr(new Date()); $('im_fx').value = LS.get('crm_fx', '117.2'); }
+  $('im_vat_rec').checked = im ? !!im.vat_recoverable : setting('vat_recoverable', '0') === '1';
+  const qc = (im && im.qc && typeof im.qc === 'object') ? im.qc : {};
+  $('impQc').innerHTML = QC_LIST.map((t, i) => `<label class="check qc-item"><input type="checkbox" data-qc="${i}" ${qc[i] ? 'checked' : ''}> ${t}</label>`).join('');
   $('impRows').innerHTML = '';
   (im ? impItems(im.id) : []).forEach(addImpRow);
   if (!im) addImpRow();
@@ -2891,8 +3044,12 @@ function openImportModal(id) {
 async function saveImport(e) {
   e.preventDefault();
   const f = {};
-  IMPF.forEach(k => { const el = $('im_' + k); if (!el) return; const v = el.value.trim(); f[k] = v === '' ? null : (['freight_cost', 'duty_cost', 'other_cost', 'fx'].includes(k) ? n(v) : v); });
-  ['freight_cost', 'duty_cost', 'other_cost'].forEach(k => { f[k] = n(f[k]); });
+  IMPF.forEach(k => { const el = $('im_' + k); if (!el) return; const v = el.value.trim(); f[k] = v === '' ? null : (['freight_cost', 'duty_cost', 'other_cost', 'vat_cost', 'fx', 'duty_pct'].includes(k) ? n(v) : ['advance_pct', 'lead_days'].includes(k) ? parseInt(v) || null : v); });
+  ['freight_cost', 'duty_cost', 'other_cost', 'vat_cost'].forEach(k => { f[k] = n(f[k]); });
+  f.advance_pct = f.advance_pct || 30;
+  f.vat_recoverable = $('im_vat_rec').checked;
+  f.qc = Object.fromEntries([...document.querySelectorAll('#impQc [data-qc]')].map(x => [x.dataset.qc, x.checked]));
+  if (f.fx) LS.set('crm_fx', f.fx);
   if (!f.supplier) return toast('Upiši dobavljača');
   const items = readImpItems();
   try {
@@ -2956,10 +3113,10 @@ const BOT_TAB_FOR = { order: 'orders', cust: 'customers', product: 'products', p
 const BOT_TIPS = {
   overview: 'Brojke za izabrani period (gore biraš danas, 7 ili 30 dana ili svoje datume). Klik na karticu <b>Prihod, Profit, Reklame…</b> otvara grafikon sa istorijom, a klik na stubić pokazuje taj dan.',
   notes: 'Beleške celog tima, svi vide sve. Pišeš gore i biraš ko piše. Klik na tekst je menja, 📌 kači na vrh, ✓ označava urađeno. Iznad liste su filteri po osobi i statusu.',
-  orders: 'Porudžbine vidiš kao <b>Tabelu</b> ili <b>Pipeline</b> (kartice prevlačiš kroz faze). Klik na porudžbinu otvara detalje, aktivnost i komentare. Taster <kbd>N</kbd> otvara novu porudžbinu.',
-  customers: 'Kupci (potkivači, salaši, konjički klubovi, prodavnice) sa potrošnjom i brojem kupovina. Kupac se sam pravi kad uneseš porudžbinu i spaja se po telefonu, Instagramu, mejlu ili imenu.',
+  orders: 'Porudžbine vidiš kao <b>Tabelu</b> ili <b>Pipeline</b>. Kod nove porudžbine biraš maloprodajne ili veleprodajne cene (CRM sam prepozna postojećeg kupca), a za uplatu na račun ili fakturu upisuješ rok. Nenaplaćeno se vidi na Pregledu, a u porudžbini je dugme „Naplaćeno danas“. Taster <kbd>N</kbd> otvara novu porudžbinu.',
+  customers: 'Kupci: potkivači, ergele, klubovi, salaši, prodavnice. Svaki ima vrstu i nivo cena (maloprodaja ili veleprodaja za potkivače). CRM pamti ritam poručivanja i javlja ko kasni („Za poziv“), a segment „Duguju“ pokazuje ko ima nenaplaćen račun. Kupac se sam pravi iz porudžbine i spaja po telefonu ili imenu.',
   products: 'Asortiman potkovica i eksera: model, proizvođač, veličine i stanje. Dugmići <b>−</b> i <b>+</b> odmah menjaju zalihu. Granicu za upozorenje („upozori kad ostane ≤ X“) menjaš desno gore. Nabavnu cenu ne moraš da računaš ručno, upiše je uvozna tura kad je primiš na stanje.',
-  imports: 'Svaka uvozna tura: dobavljač, zemlja, status (u planu, naručeno, plaćeno, transport, carina, stiglo), stavke sa količinom i cenom, vozarina, carina i ostali troškovi. CRM sam računa stvarnu nabavnu cenu po komadu. Dugme <b>Primi na stanje</b> ubacuje robu u zalihe i upisuje tu cenu.',
+  imports: 'Svaka uvozna tura: dobavljač, status (u planu, uzorci, naručeno, plaćeno, transport, carina, stiglo), stavke, vozarina, carina (dugme „Izračunaj“ iz carinske stope), PDV pri uvozu (trošak dok firma nije u sistemu PDV-a), avans i kontrola uzorka pre avansa. CRM računa stvarnu nabavnu po komadu i upozorava kad si ispod MOQ. <b>Primi na stanje</b> ubacuje robu i upisuje nabavnu na modele. Dole je plan sledeće ture iz prodaje.',
   returns: 'Reklamacije, povrati i zamene sa rokovima: 8 dana za odgovor na reklamaciju, 14 dana za povrat novca ili zamenu. Pogled <b>Šta da popravimo</b> skuplja razloge i utiske.',
   posts: 'Ideje za objave sa konceptom, datumom objave i Drive linkom za video. Pogledi: <b>Tabla</b> (faze), <b>Kalendar</b> i <b>Lista</b>.',
   site: 'Link sajta stoji gore. Ispod su predlozi šta da se promeni ili doda na sajtu, po kategorijama, sa statusom i komentarima.',
@@ -2970,7 +3127,9 @@ const BOT_FAQ = [
   { g: [['status', 'faz', 'pomer', 'prevuc', 'poslat', 'isporuc', 'spakov', 'potvrd']], a: 'Otvori porudžbinu i promeni status (Nova → Potvrđena → Spakovana → Poslata → Isporučena). U pogledu <b>Pipeline</b> samo prevučeš karticu u sledeću kolonu.', b: [['Porudžbine', 'tab:orders'], ['Pipeline pogled', 'oview:pipeline']] },
   { g: [['porudzbin', 'narudzbin', 'order'], ['dodam', 'dodaj', 'unes', 'napravi', 'nov', 'kreir', 'ubac', 'upis']], a: 'Klikni <b>+ Nova porudžbina</b> (ili taster <kbd>N</kbd>). Upišeš kupca, dodaš modele i veličine, a cena, profit i zalihe se računaju sami.', b: [['Nova porudžbina', 'act:Nova porudžbina'], ['Porudžbine', 'tab:orders']] },
   { g: [['otkaz', 'storn', 'ponist']], a: 'Otvori porudžbinu i stavi status <b>Otkazana</b>. Roba se sama vraća na stanje, a porudžbina se ne računa u prihod.', b: [['Porudžbine', 'tab:orders']] },
+  { g: [['pdv', 'carin', 'carinsk']], a: 'U turi upiši carinsku stopu i klikni „Izračunaj“: carina ide na robu + vozarinu, PDV 20% na sve zajedno. PDV je trošak dok firma nije u sistemu PDV-a; kad uđe, štikliraj „PDV se odbija“ i nabavna cena pada. Stopu proveri kod Uprave carina pre prve porudžbine (obavezujuće mišljenje je besplatno).', b: [['Nabavka i uvoz', 'tab:imports']] },
   { g: [['uvoz', 'tura', 'kontejner', 'carin', 'vozarin', 'spedic', 'dobavljac', 'nabavk']], a: 'Nabavka i uvoz → <b>+ Nova tura</b>: dobavljač, zemlja, valuta i kurs, stavke (model, veličina, količina, cena po komadu) i troškovi (vozarina, carina, ostalo). CRM odmah pokazuje stvarnu nabavnu cenu po komadu. Kad roba stigne, klikni <b>Primi na stanje</b>.', b: [['Nova tura uvoza', 'act:Nova tura uvoza'], ['Nabavka i uvoz', 'tab:imports']] },
+  { g: [['velepro', 'velo', 'malopro', 'nivo cen', 'cena za potkivac']], a: 'Svaki model ima maloprodajnu i veleprodajnu cenu (potkivači, klubovi, obično 25–30% niže). Kupac ima nivo cena u profilu, a kod nove porudžbine CRM sam prebaci na veleprodaju kad prepozna postojećeg veleprodajnog kupca. Možeš i ručno da promeniš u polju „Cene“.', b: [['Kupci', 'tab:customers'], ['Potkovice', 'tab:products']] },
   { g: [['nabavn', 'landed', 'cena kostanja', 'koliko me kosta']], a: 'Nabavnu cenu ne upisuješ ručno. Kad primiš turu na stanje, CRM podeli vozarinu, carinu i ostale troškove po vrednosti robe i upiše stvarnu cenu po komadu na svaki model.', b: [['Nabavka i uvoz', 'tab:imports']] },
   { g: [['velicin', 'zalih', 'stanj', 'komad', 'proizvod', 'potkovic', 'model', 'artik', 'ekser'], ['dodam', 'dodaj', 'menjam', 'menja', 'promen', 'unes', 'azurir', 'smanj', 'povec', 'nov', 'upis', 'skin', 'kako da', 'kako se']], a: 'Potkovice → <b>Nova potkovica</b> ili klik na postojeću → <b>+ Veličina</b> i količina. Stanje menjaš i direktno u tabeli dugmićima − i +. Porudžbine same skidaju robu, a uvozne ture je dodaju.', b: [['Nova potkovica', 'act:Nova potkovica'], ['Potkovice', 'tab:products']] },
   { g: [['upozoren', 'granic']], a: 'U sekciji Potkovice desno gore piše „Upozori kad ostane ≤ X kom“. Promeni broj i upozorenja se odmah preračunaju.', b: [['Potkovice', 'tab:products']] },
@@ -2991,7 +3150,7 @@ const BOT_FAQ = [
   { g: [['kupac', 'kupc', 'klijent', 'potkivac', 'salas'], ['dodam', 'dodaj', 'nov', 'napravi', 'unes', 'pravi', 'povez', 'spaja', 'kako da', 'kako se']], a: 'Kupac se sam pravi kad uneseš porudžbinu i povezuje se sa postojećim po telefonu, Instagramu, mejlu ili imenu. Ručno ga dodaješ preko <b>Novi kupac</b>.', b: [['Kupci', 'tab:customers'], ['Novi kupac', 'act:Novi kupac']] },
   { g: [['lozink', 'sifr', 'prijav', 'login', 'odjav']], a: 'Odjava je dugme gore desno (na telefonu u meniju sa tri crtice). Za promenu lozinke javi Konstantinu.', b: [] },
 ];
-const BOT_CHIPS = { overview: ['Šta je hitno?', 'Prihod ovog meseca', 'Šta fali na stanju?'], orders: ['Šta čeka obradu?', 'Nova porudžbina', 'Prihod ove nedelje'], products: ['Šta fali na stanju?', 'Najprodavanije', 'Nova potkovica'], imports: ['Šta je na putu?', 'Nova tura uvoza'], returns: ['Koje reklamacije kasne?', 'Nova reklamacija'], customers: ['Najbolji kupci', 'Novi kupac'], posts: ['Objave ove nedelje', 'Nova ideja za objavu'], notes: ['Nova beleška'], ads: ['Potrošnja ovog meseca'], site: ['Novi predlog za sajt'], history: ['Vrati obrisano'] };
+const BOT_CHIPS = { overview: ['Šta je hitno?', 'Ko nam duguje?', 'Koga da pozovem?', 'Prihod ovog meseca'], orders: ['Šta čeka obradu?', 'Ko nam duguje?', 'Nova porudžbina'], products: ['Šta fali na stanju?', 'Koja veličina za kopito 140 mm?', 'Najprodavanije'], imports: ['Šta je na putu?', 'Šta da poručimo?', 'Nova tura uvoza'], returns: ['Koje reklamacije kasne?', 'Nova reklamacija'], customers: ['Koga da pozovem?', 'Najbolji kupci', 'Novi kupac'], posts: ['Objave ove nedelje', 'Nova ideja za objavu'], notes: ['Nova beleška'], ads: ['Potrošnja ovog meseca'], site: ['Novi predlog za sajt'], history: ['Vrati obrisano'] };
 const bfold = (s) => ' ' + fold(s).replace(/[^a-z0-9#\s]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
 const bhas = (t, arr) => arr.some(w => t.includes(' ' + w));
 const bstem = (w) => w.length > 6 ? w.slice(0, -2) : w.length > 4 ? w.slice(0, -1) : w;
@@ -3105,7 +3264,11 @@ function botUrgent() {
   const pl = state.posts.filter(p => p.publish_at && p.status !== 'published');
   const lateP = pl.filter(p => new Date(p.publish_at) < new Date(new Date().setHours(0, 0, 0, 0))), nextP = pl.filter(p => { const d = new Date(p.publish_at); return d >= new Date(new Date().setHours(0, 0, 0, 0)) && d <= tom; });
   if (lateP.length || nextP.length) lines.push(botItem(`Objave: ${[nextP.length && `${nextP.length} danas/sutra`, lateP.length && `${lateP.length} kasni`].filter(Boolean).join(', ')}`, nextP.slice(0, 2).map(p => esc(p.title)).join(', '), 'say:Objave ove nedelje', '▶'));
-  const pins = state.notes.filter(x => x.pinned && !x.done);
+  const un = unpaidOrders(), unLate = un.filter(o => dueDays(o) > 0);
+  if (un.length) lines.push(botItem(`Nenaplaćeno: ${rsd(un.reduce((a, o) => a + totals(o).revenue, 0))}`, `${un.length} ${bpl(un.length, 'porudžbina', 'porudžbine', 'porudžbina')} na račun ili fakturu${unLate.length ? `, <span class="bt-red">${unLate.length} kasni</span>` : ''}`, 'say:Ko nam duguje?', '₽'));
+  const cl = callList();
+  if (cl.length) lines.push(botItem(`${cl.length} ${bpl(cl.length, 'kupac kasni', 'kupca kasne', 'kupaca kasni')} sa porudžbinom`, cl.slice(0, 3).map(x => esc(x.c.name)).join(', '), 'say:Koga da pozovem?', '📞'));
+  const pins = state.notes.filter(x => x.pinned && !x.done && !String(x.body).startsWith('PRAVILO:'));
   if (pins.length) lines.push(botItem(`${pins.length} ${bpl(pins.length, 'zakačena beleška', 'zakačene beleške', 'zakačenih beleški')}`, esc(pins[0].body.slice(0, 60)), 'tab:notes', '📌'));
   const chg = state.nfState ? CHG_TABS.reduce((a, t) => a + chgUnread(t), 0) : 0;
   if (chg) lines.push(botItem(`${chg} ${bpl(chg, 'tuđa promena koju', 'tuđe promene koje', 'tuđih promena koje')} nisi ${PEOPLE[who()]?.f ? 'videla' : 'video'}`, 'crveni brojevi u meniju', 'say:Šta je novo?', '●'));
@@ -3116,6 +3279,33 @@ function botStock() {
   const al = stockAlerts();
   if (!al.length) return botSay(`Sve veličine imaju više od ${lowT()} kom. Nema upozorenja.`, [['Potkovice', 'tab:products']]);
   botSay(`<div class="bt-cap" style="margin-bottom:6px">${al.length} ${bpl(al.length, 'veličina', 'veličine', 'veličina')} pri kraju (granica ≤ ${lowT()} kom):</div><div class="bt-list">${al.slice(0, 8).map(({ p, v }) => botItem(`${esc(p.name)} · ${esc(v.size)}${v.color ? ' ' + esc(v.color) : ''}`, v.stock <= 0 ? '<span class="bt-red">rasprodato</span>' : `ostalo ${v.stock} kom${p.supplier ? ' · ' + esc(p.supplier) : ''}`, 'ref:product:' + p.id, v.stock <= 0 ? '!' : v.stock)).join('')}</div>${al.length > 8 ? `<div class="bt-note">i još ${al.length - 8}…</div>` : ''}`, [['Sva upozorenja', 'tab:products']]);
+}
+function botDues() {
+  const un = unpaidOrders();
+  if (!un.length) return botSay('Sve je naplaćeno. Nema otvorenih računa ni faktura.', [['Porudžbine', 'tab:orders']]);
+  const sum = un.reduce((a, o) => a + totals(o).revenue, 0);
+  botSay(`<div class="bt-big">${rsd(sum)}</div><div class="bt-cap" style="margin-bottom:6px">nenaplaćeno · ${un.length} ${bpl(un.length, 'porudžbina', 'porudžbine', 'porudžbina')}</div><div class="bt-list">${un.slice(0, 8).map(o => { const dd = dueDays(o); return botItem(`${esc(o.order_no || '')} · ${esc(o.customer_name)}`, `${rsd(totals(o).revenue)} · ${PAY[o.payment]}${o.due_date ? ` · ${dd > 0 ? '<span class="bt-red">kasni ' + dd + ' d</span>' : 'rok ' + fmtDate(o.due_date)}` : ''}`, 'ref:order:' + o.id, dd > 0 ? '!' : '₽'); }).join('')}</div><div class="bt-note">Kad legne uplata, otvori porudžbinu i klikni „Naplaćeno danas“.</div>`);
+}
+function botCalls() {
+  const cl = callList();
+  if (!cl.length) return botSay('Niko ne kasni. Svi kupci poručuju u svom uobičajenom ritmu.', [['Kupci', 'tab:customers']]);
+  botSay(`<div class="bt-cap" style="margin-bottom:6px">Kupci koje vredi pozvati:</div><div class="bt-list">${cl.slice(0, 8).map(({ c, s, cd }) => botItem(esc(c.name), `${cd.once ? `kupio jednom, pre ${cd.idle} d` : `obično na ${cd.cyc} d, kasni ${cd.over} d`} · ${s.count} porudžb. · ${rsd(s.spend)}${c.phone ? ' · ' + esc(c.phone) : ''}`, 'ref:cust:' + c.id, '📞')).join('')}</div><div class="bt-note">Potkovica je pretplata: konj se potkiva na 6–8 nedelja. Ko kasni, verovatno kupuje kod drugog.</div>`, [['Svi za poziv', 'cseg:call']]);
+}
+function botReorder() {
+  const R = reorderPlan(), models = Object.entries(R.perModel).filter(([, q]) => q > 0);
+  if (!R.rows.some(r => r.s90 > 0)) return botSay('Još nema prodaje iz koje bih računao. Kad krenu porudžbine, reći ću ti koliko čega da poručiš da pokrije naredne mesece.', [['Nabavka i uvoz', 'tab:imports']]);
+  if (!models.length) return botSay(`Zaliha i roba na putu pokrivaju narednih ${R.months} meseci za sve što se prodaje. Nema šta da se poručuje.`, [['Plan ture', 'tab:imports']]);
+  botSay(`<div class="bt-cap" style="margin-bottom:6px">Za narednih ${R.months} meseci treba poručiti:</div><div class="bt-list">${models.map(([pid, q]) => { const p = product(pid), moq = n(p.moq || 1000); const rs = R.rows.filter(r => r.p.id === pid && r.need > 0); return botItem(`${esc(p.name)}: ${q} kom`, `${rs.map(r => `${r.v.size}${r.v.color ? ' ' + r.v.color : ''} ×${r.need}`).join(', ')}${q < moq ? ` · <span class="bt-amber">ispod MOQ ${moq}</span>` : ''}`, 'ref:product:' + pid, '⚓'); }).join('')}</div>`, [['Ceo plan', 'tab:imports'], ['Nova tura uvoza', 'act:Nova tura uvoza']]);
+}
+const SIZE_TABLE = [['00', 128, 126, 122, 124], ['0', 135, 132, 130, 131], ['1', 140, 135, 135, 135], ['2', 146, 142, 139, 143], ['3', 152, 150, 145, 150]];
+function botSize(t) {
+  const m = t.match(/(\d{2,3})\s*(mm|milimet)/) || t.match(/kopit\w*\s*(?:od|je|ima)?\s*(\d{2,3})/) || t.match(/\s(1[0-6]\d)\s/);
+  if (m) {
+    const w = +m[1]; const hind = bhas(t, ['zadnj']);
+    const row = SIZE_TABLE.find(r => (hind ? r[3] : r[1]) >= w) || SIZE_TABLE[SIZE_TABLE.length - 1];
+    return botSay(`Za ${hind ? 'zadnje' : 'prednje'} kopito širine oko <b>${w} mm</b> (mereno posle obrade) ide radna 22x8 veličina <b>${row[0]}</b> (potkovica ${hind ? row[3] + ' × ' + row[4] : row[1] + ' × ' + row[2]} mm). Ako je između dve veličine, ide veća, potkivač lakše skrati nego što doda. Ekseri: E5 za radne 22x8, E4 za lakše konje, E6 za debeo zid kopita.`, [['Vodič za veličine', 'guide']]);
+  }
+  botSay(`<div class="bt-cap" style="margin-bottom:6px">Radna 22x8, širina × dužina u mm</div><div class="bt-kvs">${SIZE_TABLE.map(r => `<div class="bt-kv"><span>vel. ${r[0]}</span><b>prednja ${r[1]}×${r[2]} · zadnja ${r[3]}×${r[4]}</b></div>`).join('')}</div><div class="bt-note">Najtraženija je 2. Ako mi kažeš širinu kopita u mm, predložiću veličinu. Profil 22x8 nije veličina, to je širina × debljina materijala.</div>`, [['Ceo vodič', 'guide']]);
 }
 function botImports() {
   const open = state.imps.filter(x => !x.received && x.status !== 'cancelled').sort((a, b) => (a.eta || '9').localeCompare(b.eta || '9'));
@@ -3222,6 +3412,10 @@ async function botAnswer(raw) {
   if (!newVerb && (bhas(t, metricWords) || (bhas(t, ['koliko']) && bhas(t, ['porudzbin', 'narudzbin', 'komada', 'prodat', 'reklam'])))) return botMetric(t);
   if (bhas(t, ['sta je novo', 'ima novo', 'nesto novo', 'novosti', 'ko je menja', 'ko je sta', 'sta se desilo'])) return botChanges();
   if (bhas(t, ['hitno', 'sta treba da', 'sta imam', 'sta ima', 'obavez', 'todo', 'to do', 'plan za danas', 'pregled dana', 'rezime', 'sazetak', 'sta ceka', 'ceka obradu', 'za obradu', 'sta je danas'])) return botUrgent();
+  if (bhas(t, ['dugu', 'nenaplac', 'naplat', 'neplacen', 'ko nije platio', 'potrazivanj', 'fakture', 'racun'])) return botDues();
+  if (bhas(t, ['koga da pozov', 'koga da zovem', 'kasni sa porudz', 'kasne sa porudz', 'za poziv', 'ko nije poruc', 'nisu porucil', 'ko je prestao', 'odustal'])) return botCalls();
+  if (bhas(t, ['sta da poruc', 'sta poruc', 'koliko da poruc', 'sledec', 'plan ture', 'nova tura sta', 'dopun', 'kolicin za poruc'])) return botReorder();
+  if (bhas(t, ['velicin', 'koja vel', 'koji broj', 'kopit', 'mm '])) return botSize(t);
   if (!newVerb && bhas(t, ['uvoz', 'tura', 'ture', 'kontejner', 'na putu', 'carin', 'vozarin', 'dobavljac', 'nabavk', 'kad stize', 'kada stize'])) return botImports();
   if (!newVerb && bhas(t, ['fali', 'nestaj', 'pri kraju', 'rasprod', 'dopun', 'zalih', 'stanje', 'na stanju', 'nema na', 'malo robe'])) return botStock();
   if (!newVerb && bhas(t, ['povrat', 'reklamac', 'zamen', 'zalb']) && bhas(t, ['kasn', 'otvor', 'koliko', 'ima', 'status', 'rok', 'koji', 'koje', 'sta je sa', 'cek'])) return botReturns(t);
@@ -3279,7 +3473,7 @@ async function botRun(go, reply, btns) {
   const [k, ...rest] = go.split(':'); const arg = rest.join(':');
   if (k === 'say') { if (!BOT.open) openBot(); return botAsk(arg, { local: true }); }
   if (k === 'ai') { if (!BOT.open) openBot(); return botAsk(arg); }
-  const modal = ['act', 'ref', 'open', 'metric', 'bell', 'cmd', 'logout'].includes(k);
+  const modal = ['act', 'ref', 'open', 'metric', 'bell', 'cmd', 'logout', 'guide'].includes(k);
   const nav = ['tab', 'cview', 'oview', 'pview', 'rview', 'archive'].includes(k);
   if (modal || (nav && botMobile())) closeBot();
   if (k === 'tab') setTab(arg);
@@ -3294,6 +3488,8 @@ async function botRun(go, reply, btns) {
   else if (k === 'pview') botView('postViewSeg', arg, 'posts');
   else if (k === 'rview') botView('retViewSeg', arg, 'returns');
   else if (k === 'archive') { setTab('history'); showArchive(); }
+  else if (k === 'guide') { $('guideModal').classList.add('open'); }
+  else if (k === 'cseg') { setTab('customers'); state.custView = 'list'; state.custSeg = arg; renderCustomers(); }
   else if (k === 'bell') nfMenu(arg);
   else if (k === 'cmd') openCmd();
   else if (k === 'site') window.open(siteUrl(), '_blank');
@@ -3372,18 +3568,25 @@ function aiSnapshot() {
   state.items.forEach(i => { const o = order(i.order_id); if (!o || NO_REVENUE.includes(o.status)) return; const pid = i.product_id || variant(i.variant_id)?.product_id; if (!pid) return; soldMap[pid] = (soldMap[pid] || 0) + i.qty; if (new Date(o.created_at) >= d30) sold30[pid] = (sold30[pid] || 0) + i.qty; });
 
   const os = state.orders.slice().sort((a, b) => b.created_at.localeCompare(a.created_at));
-  L.push(`\n## PORUDŽBINE (najnovijih ${Math.min(60, os.length)} od ${os.length})\nid|broj|datum|kupac|grad|kanal|status|plaćanje|iznos|profit|popust|kod|kurir|broj pošiljke|stavke|napomena`);
-  os.slice(0, 60).forEach(o => { const T = totals(o); row(o.id, o.order_no, dt(o.created_at), o.customer_name, o.city, CH[o.channel] || o.channel, ST[o.status], PAY[o.payment] || o.payment, R(T.revenue), R(T.profit), R(o.discount) || '', o.discount_code, o.courier, o.tracking_no, itemsOf(o.id).map(i => `${i.name || prodName(i.product_id)} ${i.size || ''} x${i.qty}`).join(', '), cut(o.note, 80)); });
+  L.push(`\n## PORUDŽBINE (najnovijih ${Math.min(60, os.length)} od ${os.length})\nid|broj|datum|kupac|grad|kanal|status|plaćanje|naplaćeno|rok plaćanja|faktura|iznos|profit|popust|isporuka|kurir|broj pošiljke|stavke|napomena`);
+  os.slice(0, 60).forEach(o => { const T = totals(o); row(o.id, o.order_no, dt(o.created_at), o.customer_name, o.city, CH[o.channel] || o.channel, ST[o.status], PAY[o.payment] || o.payment, isUnpaid(o) ? 'NE' : (['bank', 'invoice'].includes(o.payment) ? 'da' : ''), d(o.due_date), o.invoice_no, R(T.revenue), R(T.profit), R(o.discount) || '', o.delivery, o.courier, o.tracking_no, itemsOf(o.id).map(i => `${i.name || prodName(i.product_id)} ${i.size || ''} x${i.qty}`).join(', '), cut(o.note, 80)); });
 
-  L.push(`\n## POTKOVICE I ASORTIMAN (${state.products.length} modela; upozorenje kad veličina ima ≤ ${lowT()} kom)\nid|naziv|kategorija|status|nabavna|prodajna|stara cena|marža %|dobavljač|materijal|veličine=stanje|prodato ukupno|prodato 30 dana|napomena`);
-  state.products.forEach(p => row(p.id, p.name, p.category, { active: 'Aktivan', draft: 'Priprema', archived: 'Arhiviran' }[p.status] || p.status, R(p.buy_price), R(p.sell_price), R(p.compare_price) || '', n(p.sell_price) ? Math.round((1 - n(p.buy_price) / n(p.sell_price)) * 100) : '', p.supplier, p.material, variantsOf(p.id).map(v => `${v.size}${v.color ? ' ' + v.color : ''}=${v.stock}`).join(' '), soldMap[p.id] || 0, sold30[p.id] || 0, cut(p.note, 80)));
+  L.push(`\n## POTKOVICE I ASORTIMAN (${state.products.length} modela; opšta granica upozorenja ≤ ${lowT()} kom, može i po veličini)\nid|naziv|vrsta|profil|kapne|proizvođač|status|nabavna|veleprodajna|maloprodajna|cena konkurencije|marža malo %|MOQ|jedinica|veličine=stanje|prodato ukupno|prodato 30 dana|napomena`);
+  state.products.forEach(p => row(p.id, p.name, p.category, p.profile, p.clips, p.maker, { active: 'Aktivan', draft: 'Priprema (još nije stigla roba)', archived: 'Arhiviran' }[p.status] || p.status, R(p.buy_price), R(p.wholesale_price) || '', R(p.sell_price), R(p.compare_price) || '', n(p.sell_price) ? Math.round((1 - n(p.buy_price) / n(p.sell_price)) * 100) : '', p.moq, p.unit, variantsOf(p.id).map(v => `${v.size}${v.color ? ' ' + v.color : ''}=${v.stock}`).join(' '), soldMap[p.id] || 0, sold30[p.id] || 0, cut(p.note, 120)));
   const al = stockAlerts();
   L.push(`Upozorenja zaliha: ${al.length ? al.map(({ p, v }) => `${p.name} ${v.size}=${v.stock}`).join(', ') : 'nema'}`);
 
   const cs = state.customers.map(c => ({ c, s: custStats(c) })).sort((a, b) => b.s.spend - a.s.spend);
-  L.push(`\n## KUPCI (prvih ${Math.min(60, cs.length)} po potrošnji od ${cs.length})\nid|ime|telefon|instagram|grad|kupovina|potrošnja|nivo|poeni|prva kupovina|poslednja kupovina|dana od poslednje|vip|napomena`);
-  cs.slice(0, 60).forEach(({ c, s }) => row(c.id, c.name, c.phone, c.instagram, c.city, s.count, R(s.spend), s.tier?.name, s.points, d(s.first), d(s.last), s.idle ?? '', c.vip ? 'da' : '', cut(c.note, 60)));
-  L.push(`Loyalty pravila: ${JSON.stringify(loy())}`);
+  L.push(`\n## KUPCI (prvih ${Math.min(60, cs.length)} po potrošnji od ${cs.length})\nid|ime|vrsta|cene|firma|telefon|grad|kupovina|potrošnja|prva kupovina|poslednja kupovina|ritam dana|sledeća oko|kasni dana|duguje RSD|ključni|napomena`);
+  cs.slice(0, 60).forEach(({ c, s }) => { const cd = custCadence(c, s); const due = custOrders(c.id).filter(isUnpaid).reduce((a, o) => a + totals(o).revenue, 0); row(c.id, c.name, CKIND[c.kind] || c.kind, TIER[c.price_tier] || 'Maloprodaja', c.company, c.phone, c.city, s.count, R(s.spend), d(s.first), d(s.last), cd && cd.cyc ? cd.cyc : '', cd && cd.next ? d(cd.next) : '', cd && cd.late ? (cd.once ? `kupio jednom pre ${cd.idle} d` : cd.over) : '', R(due) || '', c.vip ? 'da' : '', cut(c.note, 80)); });
+  const un = unpaidOrders();
+  L.push(`\n## NENAPLAĆENO (uplata na račun / faktura bez evidentirane uplate): ${un.length} porudžbina, ${R(un.reduce((a, o) => a + totals(o).revenue, 0))} RSD\n${un.slice(0, 30).map(o => `${o.order_no || ''} ${o.customer_name}: ${R(totals(o).revenue)} RSD, ${PAY[o.payment]}${o.invoice_no ? ', faktura ' + o.invoice_no : ''}${o.due_date ? ', rok ' + o.due_date + (dueDays(o) > 0 ? ' (kasni ' + dueDays(o) + ' d)' : '') : ''}`).join('\n') || 'nema'}`);
+  const cl = callList();
+  L.push(`\n## KUPCI ZA POZIV (kasne sa uobičajenom porudžbinom): ${cl.map(({ c, cd }) => `${c.name} (${cd.once ? 'kupio jednom pre ' + cd.idle + ' d' : 'ritam ' + cd.cyc + ' d, kasni ' + cd.over + ' d'})`).join('; ') || 'niko'}`);
+  const RP = reorderPlan();
+  L.push(`\n## PLAN SLEDEĆE TURE (pokriće ${RP.months} meseci iz prodaje u poslednjih 90 dana)\nmodel|veličina|prodato 90 d|mesečno|na stanju|na putu|dovoljno meseci|poručiti`);
+  RP.rows.filter(r => r.s90 || r.need).forEach(r => row(r.p.name, `${r.v.size}${r.v.color ? ' ' + r.v.color : ''}`, r.s90, r.perMonth.toFixed(1), r.v.stock, r.way, r.cover == null ? '' : r.cover.toFixed(1), r.need));
+  L.push(`Po modelu: ${Object.entries(RP.perModel).filter(([, q]) => q).map(([pid, q]) => `${prodName(pid)} ${q} kom (MOQ ${n(product(pid)?.moq || 1000)})`).join('; ') || 'ništa'}`);
   L.push(`\n## KODOVI ZA POPUST\nid|kod|%|RSD|aktivan|važi od|važi do|max upotreba|upotrebljen|prihod|napomena`);
   state.codes.forEach(c => { const u = codeUses(c); row(c.id, c.code, c.pct, c.rsd, c.active === false ? 'ne' : 'da', d(c.valid_from), d(c.valid_to), c.max_uses, u.n, R(u.rev), cut(c.note, 60)); });
 
@@ -3392,8 +3595,8 @@ function aiSnapshot() {
   L.push(`\n## POVRATI, ZAMENE, REKLAMACIJE, UTISCI (otvoreni ${openR.length} + poslednjih ${closedR.length} zatvorenih)\nid|broj|datum|tip|status|kupac|porudžbina|artikal|veličina|razlog|kupac želi|rok|ocena|vraćeno RSD|zadužen|opis|šta da popravimo`);
   openR.concat(closedR).forEach(r => { const du = retDue(r); row(r.id, r.case_no, d(r.created_at), RT[r.type], ST[r.status] || r.status, r.customer_name, r.order_no, r.item, r.size, r.reason, r.resolution_wanted, du ? dueText(du) : '', r.rating, R(r.refund_amount) || '', r.assignee, cut(r.description, 160), cut(r.improve, 80)); });
 
-  L.push(`\n## NABAVKA I UVOZ (ture)\nid|oznaka|dobavljač|zemlja|status|naručeno|očekivano|stiglo|valuta|kurs|komada|roba RSD|vozarina|carina|ostalo|ukupno|nabavna po kom|primljeno na stanje|napomena`);
-  state.imps.forEach(x => { const T = impTotals(x); row(x.id, x.code, x.supplier, x.country, IMPST[x.status] || x.status, d(x.ordered_at), d(x.eta), d(x.arrived_at), x.currency, x.fx, T.qty, R(T.goodsRsd), R(x.freight_cost), R(x.duty_cost), R(x.other_cost), R(T.total), R(T.perPiece), x.received ? 'da' : 'ne', cut(x.note, 100)); });
+  L.push(`\n## NABAVKA I UVOZ (ture)\nid|oznaka|dobavljač|zemlja|status|naručeno|očekivano|stiglo|valuta|kurs|komada|roba RSD|vozarina|carina|PDV|PDV se odbija|ostalo|ukupno|nabavna po kom|avans %|avans plaćen|ostatak plaćen|kontrola uzorka|primljeno|napomena`);
+  state.imps.forEach(x => { const T = impTotals(x); row(x.id, x.code, x.supplier, x.country, IMPST[x.status] || x.status, d(x.ordered_at), d(x.eta), d(x.arrived_at), x.currency, x.fx, T.qty, R(T.goodsRsd), R(x.freight_cost), R(x.duty_cost), R(x.vat_cost), x.vat_recoverable ? 'da' : 'ne', R(x.other_cost), R(T.total), R(T.perPiece), x.advance_pct, d(x.advance_paid_at), d(x.paid_at), `${T.qc}/${QC_LIST.length}`, x.received ? 'da' : 'ne', cut(x.note, 100)); });
   L.push(`Stavke tura: ${state.impItems.map(i => `${(state.imps.find(y => y.id === i.import_id) || {}).code || '?'}: ${i.name || prodName(i.product_id)} ${i.size || ''} x${i.qty}`).slice(0, 80).join('; ') || 'nema'}`);
   L.push(`\n## PROMOCIJE (ne koristi se u ovom modulu)`);
   state.promos.slice().sort((a, b) => b.starts_at.localeCompare(a.starts_at)).forEach(p => { const x = promoResults(p); row(p.id, p.name, p.type, d(p.starts_at), p.ends_at ? d(p.ends_at) : 'traje', ST[promoStatus(p)], p.code, p.discount_pct ? p.discount_pct + '%' : p.discount_rsd ? R(p.discount_rsd) + ' RSD' : '', p.channel, R(p.budget) || '', cut(p.goal, 60), x.orders, R(x.revenue), x.withCode, x.lift == null ? '' : Math.round(x.lift * 100) + '%', R(x.spend), R(x.net), cut(p.description, 100), cut(p.result_note, 80), promoNotes(p.id).map(z => `${personName(z.author)}: ${cut(z.body, 60)}`).join(' / ')); });

@@ -331,6 +331,8 @@ body.kb-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
 .ch-shopify{background:#e2f3ee;color:#0d6b4f}
 .ch-instagram{background:var(--gold-wash);color:var(--gold-text)}
 .ch-other{background:#eef1f4;color:#3f4a56}
+.ch-phone{background:#e6eefb;color:#1c5cab}
+.ch-person{background:#efe0d2;color:#8a5a2b}
 .sizes{display:flex;gap:6px;flex-wrap:wrap}
 .size-chip{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:9px;overflow:hidden;font-size:12.5px;background:#fff}
 .size-chip .sz{padding:4px 8px;font-weight:700;background:#f6f4ee}
@@ -1105,6 +1107,17 @@ table.imp-items .num,table.imp-items th.num{text-align:right}
 .imp-acts .btn-gold.mini{padding:6px 12px;font-size:12.5px}
 .imp-done{font-size:12.5px;font-weight:600;color:#2e7d32}
 .imp-row{grid-template-columns:2fr 1fr 70px 1fr 30px}
+/* ===== v2 potkovice ===== */
+.qc-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-bottom:12px}
+.qc-item{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.35}
+.qc-item input{margin-top:3px;width:auto}
+.imp-chips .imp-qc-ok{background:#e3f0e4;color:#2e7d32}
+.reorder-model{margin-bottom:14px}
+.reorder-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:6px;font-size:13.5px}
+.g-pane h4{margin:0 0 6px}
+.g-pane table.imp-items td,.g-pane table.imp-items th{padding:5px 8px}
+#guideTabs{margin:6px 0 14px}
+@media (max-width:640px){.qc-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -1197,7 +1210,10 @@ table.imp-items .num,table.imp-items th.num{text-align:right}
         </div>
         <div class="stats" id="kpi1"></div>
         <div class="stats" id="kpi2"></div>
+        <div class="stats" id="kpi3"></div>
         <div class="two-col">
+          <div class="panel"><h4>Nenaplaćeno <span class="fu-count" id="dueCount">0</span></h4><div id="dueList"></div></div>
+          <div class="panel"><h4>Kupci za poziv <span class="fu-count" id="callCount">0</span></h4><div id="callList"></div></div>
           <div class="panel"><h4>Za obradu <span class="fu-count" id="todoCount">0</span></h4><div id="todoList"></div></div>
           <div class="panel"><h4>Malo na stanju <span class="fu-count" id="lowCount">0</span></h4><div id="lowList"></div></div>
           <div class="panel"><h4>Najprodavanije</h4><div id="topList"></div></div>
@@ -1238,7 +1254,7 @@ table.imp-items .num,table.imp-items th.num{text-align:right}
         </div>
         <div class="toolbar">
           <div class="seg" id="orderViewSeg"><button data-view="table" class="active">Tabela</button><button data-view="pipeline">Pipeline</button></div>
-          <div class="seg" id="chSeg"><button data-ch="all" class="active">Sve</button><button data-ch="instagram">Instagram</button><button data-ch="shopify">Shopify</button></div>
+          <div class="seg" id="chSeg"><button data-ch="all" class="active">Sve</button><button data-ch="phone">Telefon</button><button data-ch="instagram">Instagram</button><button data-ch="person">Lično</button><button data-ch="shopify">Sajt</button></div>
           <div class="select-wrap"><select id="orderStatusFilter"><option value="all">Svi statusi</option></select></div>
           <div class="count" id="orderCount"></div>
         </div>
@@ -1261,12 +1277,12 @@ table.imp-items .num,table.imp-items th.num{text-align:right}
         <div class="stats" id="kpiCust"></div>
         <div class="toolbar">
           <div class="seg" id="custViewSeg"><button data-view="list" class="active">Kupci</button><button data-view="club">Loyalty klub</button><button data-view="codes">Popusti</button></div>
-          <div class="seg" id="custSeg"><button data-s="all" class="active">Svi</button><button data-s="new">Novi</button><button data-s="repeat">Stalni</button><button data-s="club">Klub</button><button data-s="vip">VIP</button><button data-s="idle">Neaktivni 60+ d</button><button data-s="reward">Za nagradu</button></div>
+          <div class="seg" id="custSeg"><button data-s="all" class="active">Svi</button><button data-s="call">Za poziv</button><button data-s="potkivac">Potkivači</button><button data-s="wholesale">Veleprodaja</button><button data-s="repeat">Stalni</button><button data-s="new">Novi</button><button data-s="unpaid">Duguju</button><button data-s="idle">Neaktivni 60+ d</button></div>
           <div class="select-wrap"><select id="custSort"><option value="spend">Najviše potrošili</option><option value="recent">Poslednja kupovina</option><option value="orders">Najviše porudžbina</option><option value="name">Po imenu</option></select></div>
           <div class="count" id="custCount"></div>
         </div>
         <div class="table-card" id="custList"><table>
-          <thead><tr><th>Kupac</th><th>Kontakt</th><th>Klub</th><th>Porudžbine</th><th>Potrošeno</th><th>Poeni</th><th>Poslednja</th></tr></thead>
+          <thead><tr><th>Kupac</th><th>Kontakt</th><th>Vrsta · cene</th><th>Porudžbine</th><th>Potrošeno</th><th>Sledeća porudžbina</th><th>Poslednja</th></tr></thead>
           <tbody id="custTbody"></tbody></table></div>
         <div id="clubView" style="display:none"></div>
         <div id="codesView" style="display:none"></div>
@@ -1276,7 +1292,8 @@ table.imp-items .num,table.imp-items th.num{text-align:right}
       <div class="view" id="v-products">
         <div class="page-head">
           <div><div class="page-title">Potkovice</div><div class="page-sub">Asortiman, zalihe po veličinama, nabavne i prodajne cene, marže.</div></div>
-          <button class="btn-gold" id="newProductBtn" title="Nova potkovica"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Novi komad</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-ghost" id="guideBtn">Vodič za veličine i rečnik</button>
+          <button class="btn-gold" id="newProductBtn" title="Nova potkovica"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Novi komad</button></div>
         </div>
         <div class="stats" id="kpiStock"></div>
         <div class="toolbar"><div class="fu-title">Upozorenja</div><span class="fu-count" id="alertCount">0</span>
@@ -1303,6 +1320,11 @@ table.imp-items .num,table.imp-items th.num{text-align:right}
           <div class="count" id="impCount"></div>
         </div>
         <div id="impList"></div>
+        <div class="panel" style="margin-top:18px">
+          <div class="toolbar" style="margin-bottom:8px"><h4 style="margin:0">Šta poručiti u sledećoj turi</h4><label class="threshold" style="margin-left:auto">da pokrije narednih <input type="number" min="1" max="24" id="coverMonths" style="width:56px"> meseci</label></div>
+          <div class="page-sub" style="margin-bottom:10px">Računa se iz prodaje u poslednjih 90 dana, stanja i robe koja je već na putu. Rok proizvodnje i puta iz Kine je oko 2 meseca, zato računaj unapred.</div>
+          <div id="reorderBox"></div>
+        </div>
       </div>
       <!-- POVRATI -->
       <div class="view" id="v-returns">
@@ -1511,9 +1533,22 @@ table.imp-items .num,table.imp-items th.num{text-align:right}
         <div class="field"><label>Poštanski broj</label><input id="o_zip"></div>
       </div>
       <div class="frow3">
-        <div class="field"><label>Kanal</label><select id="o_channel"><option value="instagram">Instagram</option><option value="shopify">Shopify</option><option value="other">Drugo</option></select></div>
-        <div class="field"><label>Plaćanje</label><select id="o_pay"><option value="cod">Pouzeće</option><option value="card">Kartica</option><option value="bank">Uplata na račun</option></select></div>
+        <div class="field"><label>Kanal</label><select id="o_channel"><option value="phone">Telefon / Viber</option><option value="instagram">Instagram</option><option value="person">Lično</option><option value="shopify">Sajt</option><option value="other">Drugo</option></select></div>
+        <div class="field"><label>Plaćanje</label><select id="o_pay"><option value="cod">Pouzeće</option><option value="cash">Gotovina</option><option value="bank">Uplata na račun</option><option value="invoice">Faktura (odloženo)</option><option value="card">Kartica</option></select></div>
         <div class="field"><label>Broj porudžbine</label><input id="o_no" placeholder="auto"></div>
+      </div>
+      <div class="hint" id="o_custHint" style="min-height:0"></div>
+      <div class="frow3" id="o_payHint" style="display:none">
+        <div class="field"><label>Broj fakture / predračuna</label><input id="o_invoice" placeholder="npr. 2026-014"></div>
+        <div class="field"><label>Rok plaćanja</label><input id="o_due" type="date"></div>
+        <div class="field" style="display:flex;align-items:flex-end"><label class="check" style="display:flex;gap:8px;align-items:center;font-size:13px;margin:0"><input type="checkbox" id="o_paid"> Naplaćeno</label></div>
+      </div>
+      <div class="frow3" id="o_kindWrap">
+        <div class="field" style="grid-column:1/-1"><label>Vrsta kupca (za novog)</label><select id="o_kind"><option value="">— nije bitno —</option><option value="potkivac">Potkivač</option><option value="ergela">Ergela / konjički klub</option><option value="kasacki">Kasački / galopski klub</option><option value="salas">Salaš / vlasnik konja</option><option value="prodavnica">Prodavnica / distributer</option><option value="veterinar">Veterinar</option><option value="ostalo">Ostalo</option></select></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Cene</label><select id="o_tier"><option value="retail">Maloprodaja</option><option value="wholesale">Veleprodaja (potkivači, klubovi)</option></select></div>
+        <div class="field"><label>Isporuka</label><select id="o_delivery"><option value="">—</option><option value="kurir">Kurir</option><option value="licno">Lična dostava</option><option value="preuzimanje">Preuzimanje</option></select></div>
       </div>
       <div class="sec-title">Artikli</div>
       <div id="itemRows"></div>
@@ -1522,7 +1557,7 @@ table.imp-items .num,table.imp-items th.num{text-align:right}
       <div class="frow3">
         <div class="field"><label>Dostava (kupac plaća)</label><input id="o_shipPrice" type="number" step="0.01" value="0"></div>
         <div class="field"><label>Dostava (plaćamo kuriru)</label><input id="o_shipCost" type="number" step="0.01" value="0"></div>
-        <div class="field"><label>Pakovanje (kutija, papir, poklon)</label><input id="o_pack" type="number" step="0.01" value="0"></div>
+        <div class="field"><label>Pakovanje (kutija, traka)</label><input id="o_pack" type="number" step="0.01" value="0"></div>
       </div>
       <div class="frow3">
         <div class="field"><label>Popust (RSD)</label><input id="o_disc" type="number" step="0.01" value="0"></div>
@@ -1538,6 +1573,82 @@ table.imp-items .num,table.imp-items th.num{text-align:right}
 </div>
 
 
+
+<!-- MODAL vodič -->
+<div class="modal-wrap" id="guideModal"><div class="modal-bg" data-close></div>
+  <div class="modal wide" style="max-width:820px;max-height:90vh;overflow-y:auto">
+    <div class="mt-head" style="margin-bottom:10px"><div><div class="mt-title">Vodič za veličine i rečnik</div><div class="page-sub">Ono što se pita svaki dan. Izvor: mozak za potkovice (System Line i Kerckhaert mere, 10.9.2026).</div></div><button class="icon-btn" data-close>✕</button></div>
+    <div class="drawer-tabs" id="guideTabs"><button data-g="sizes" class="active">Veličine</button><button data-g="nails">Ekseri</button><button data-g="glossary">Rečnik za fabriku</button><button data-g="rules">Pravila</button></div>
+    <div class="g-pane" data-gp="sizes">
+      <h4>Radna čelična 22x8 (referenca Kerckhaert DF)</h4>
+      <div class="page-sub" style="margin-bottom:6px">Mere su širina × dužina potkovice u mm. Ako je kopito između dve veličine, ide veća, potkivač lakše skrati nego što doda. Prednja: 1 prstna kapna. Zadnja: 2 bočne.</div>
+      <table class="imp-items"><thead><tr><th>Vel.</th><th>Prednja W×L</th><th class="num">g</th><th>Zadnja W×L</th><th class="num">g</th><th>Tipično za</th></tr></thead><tbody>
+        <tr><td>00</td><td>128 × 126</td><td class="num">370</td><td>122 × 124</td><td class="num">340</td><td>poniji, mladi konji</td></tr>
+        <tr><td>0</td><td>135 × 132</td><td class="num">400</td><td>130 × 131</td><td class="num">385</td><td>lakši jahaći konji</td></tr>
+        <tr><td>1</td><td>140 × 135</td><td class="num">420</td><td>135 × 135</td><td class="num">406</td><td>kasači, sportski konji</td></tr>
+        <tr><td>2</td><td>146 × 142</td><td class="num">440</td><td>139 × 143</td><td class="num">420</td><td>najtraženija, radni i jahaći</td></tr>
+        <tr><td>3</td><td>152 × 150</td><td class="num">460</td><td>145 × 150</td><td class="num">460</td><td>krupniji radni konji</td></tr>
+      </tbody></table>
+      <h4 style="margin-top:14px">Kasačka ravna 15x6 (referenca KW Fram)</h4>
+      <table class="imp-items"><thead><tr><th>Vel.</th><th>Prednja W×L</th><th class="num">g</th><th>Zadnja W×L</th><th class="num">g</th></tr></thead><tbody>
+        <tr><td>0</td><td>109 × 116</td><td class="num">190</td><td>110 × 116</td><td class="num">190</td></tr>
+        <tr><td>1</td><td>117 × 123</td><td class="num">210</td><td>114 × 124</td><td class="num">200</td></tr>
+        <tr><td>2</td><td>121 × 130</td><td class="num">220</td><td>120 × 131</td><td class="num">220</td></tr>
+        <tr><td>3</td><td>129 × 139</td><td class="num">240</td><td>128 × 140</td><td class="num">240</td></tr>
+        <tr><td>4</td><td>137 × 145</td><td class="num">250</td><td>135 × 146</td><td class="num">240</td></tr>
+      </tbody></table>
+      <h4 style="margin-top:14px">Ostalo</h4>
+      <ul class="bt-ul" style="margin-left:18px">
+        <li><b>Half round 15x5:</b> veličine 1, 3, 4, 5. Vel. 1 = 116 × 122 mm, 150 g.</li>
+        <li><b>Alu Trot Flat:</b> numeracija po širini u mm: 115, 120, 125, 130. 115 prednja = 115 × 130 mm, 120 zadnja = 120 × 135 mm. 270–320 g.</li>
+        <li><b>Galopska alu (Kings Plate tip):</b> trkačka numeracija 3-27, 4-28, 5-29, 6-30, 7-32. Prednja 3-27 = 120 × 114 mm, zadnja 115 × 115. Oko 80 g.</li>
+        <li><b>Profil ≠ veličina:</b> 22x8 je širina × debljina materijala. Veličina je 00–3. Kineski #1–#9 ne odgovara nijednom evropskom sistemu, sa fabrikom uvek u milimetrima.</li>
+      </ul>
+    </div>
+    <div class="g-pane" data-gp="nails" style="display:none">
+      <h4>Potkivački ekseri E-head</h4>
+      <table class="imp-items"><thead><tr><th>Oznaka</th><th class="num">Dužina</th><th>Za šta</th></tr></thead><tbody>
+        <tr><td>E3</td><td class="num">45 mm</td><td>lakše potkovice, tanji zid kopita</td></tr>
+        <tr><td>E4</td><td class="num">47,5 mm</td><td>kasačke i lakši jahaći konji</td></tr>
+        <tr><td>E5</td><td class="num">51 mm</td><td>radne 22x8, najuniverzalniji</td></tr>
+        <tr><td>E6</td><td class="num">54 mm</td><td>teži konji, debeo zid kopita</td></tr>
+      </tbody></table>
+      <ul class="bt-ul" style="margin:10px 0 0 18px">
+        <li>6–8 eksera po potkovici, 24–32 po jednom potkivanju, oko 180 po konju godišnje.</li>
+        <li>Kutija od 250 pokriva 8–10 potkivanja. Potkivač sa 20 konja mesečno troši 2–3 kutije mesečno.</li>
+        <li>Pakovanje: 500/1 obični, 250/1 bakarni (Cu). Fabrici se zadaje dužina u mm, ne E broj.</li>
+        <li>Test: ekser u rupi ne sme da se klati. Rupa mora biti probijena, ne bušena.</li>
+      </ul>
+    </div>
+    <div class="g-pane" data-gp="glossary" style="display:none">
+      <h4>Kako se piše fabrici</h4>
+      <table class="imp-items"><thead><tr><th>Srpski</th><th>Engleski</th></tr></thead><tbody>
+        <tr><td>kovana (obavezno!)</td><td><b>drop forged</b> (nikad samo „steel horseshoe“)</td></tr><tr><td>livena (izbegavamo)</td><td>cast</td></tr><tr><td>meki čelik</td><td>mild steel</td></tr>
+        <tr><td>prst / grana / peta</td><td>toe / branch (quarter) / heel</td></tr><tr><td>žleb, sa žlebom</td><td>crease, fullered</td></tr><tr><td>ravna, bez žleba</td><td>plain</td></tr>
+        <tr><td>kapna, prstna kapna</td><td>clip, toe clip</td></tr><tr><td>bočne kapne</td><td>side clips / quarter clips</td></tr><tr><td>bez kapni</td><td>unclipped</td></tr>
+        <tr><td>rupa za ekser, probijena ne bušena</td><td>nail hole, punched not drilled</td></tr><tr><td>profil (širina × debljina)</td><td>section (width × thickness)</td></tr><tr><td>prednja / zadnja</td><td>front / hind</td></tr>
+        <tr><td>potkivački ekser, E glava</td><td>horseshoe nail, E-head</td></tr><tr><td>kutija od 250</td><td>box of 250 pcs</td></tr><tr><td>uzorak</td><td>sample</td></tr>
+        <tr><td>minimalna količina</td><td>MOQ (minimum order quantity)</td></tr><tr><td>rok proizvodnje</td><td>lead time</td></tr><tr><td>cena u luci u Kini, bez transporta</td><td>FOB price</td></tr>
+        <tr><td>komada u kartonu / težina kartona</td><td>pcs per carton / carton weight</td></tr><tr><td>zbirna pošiljka</td><td>LCL shipment</td></tr>
+      </tbody></table>
+      <div class="page-sub" style="margin-top:8px">Referenca oblika se piše „similar shape to Mustad LiBero“. Na našem proizvodu nikad ne sme da stoji tuđe ime brenda.</div>
+    </div>
+    <div class="g-pane" data-gp="rules" style="display:none">
+      <ol class="bt-ul" style="margin-left:18px;line-height:1.6">
+        <li><b>Potkovica je pretplata.</b> Kopito raste 9–13 mm mesečno, ciklus je 6–8 nedelja: 24–28 potkovica i oko 180 eksera po konju godišnje. Zato je jedan stalan potkivač vredniji od jedne velike porudžbine, i zato CRM javlja ko kasni sa svojom uobičajenom porudžbinom.</li>
+        <li><b>Jedan potkivač</b> troši 100–200 potkovica mesečno (1.000–2.000 godišnje). Deset takvih drži ceo posao.</li>
+        <li><b>Kovano ili liveno</b> je jedina stvar koja može da uništi posao. U svakom dokumentu „drop forged“. Test: stegni u mengele i savij.</li>
+        <li><b>Kapne se ne podrazumevaju.</b> Prednja 1 prstna, zadnja 2 bočne. Kina pravi bez kapni ako se ne traži.</li>
+        <li><b>MOQ 1.000 po modelu.</b> Ispod toga cena +40–80% ili odbijanje. Prvi test: 2 modela × 1.000+, ne 6 modela × 46 varijanti.</li>
+        <li><b>Uvozni PDV 20%</b> je nepovratan trošak dok firma nije u sistemu PDV-a. U turi ga upiši, a „odbija se“ štikliraj tek kad uđemo u sistem.</li>
+        <li><b>Nikad avans</b> pre nego što uzorak prođe kontrolu kod potkivača (lista u svakoj turi).</li>
+        <li><b>Cene:</b> domaće maloprodajne su sa PDV (22x8 od 450–460, kasačke 360–500, alu trot 1.400–1.800, Kings Plate 750, ekseri 1.900–2.720 za 250). Kineske FOB su bez svega. Ne porede se direktno; poredi stvarnu nabavnu iz ture.</li>
+        <li><b>Konkurencija:</b> Clair (Novi Sad, Mustad i St. Croix) i System Line (Kerckhaert, CAWE, Kings). Mi smo pouzdan srednji sloj ispod njih po ceni, nikad po kvalitetu.</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL uvozna tura -->
 <div class="modal-wrap" id="impModal"><div class="modal-bg" data-close></div>
   <div class="modal wide">
@@ -1550,7 +1661,7 @@ table.imp-items .num,table.imp-items th.num{text-align:right}
       </div>
       <div class="frow3">
         <div class="field"><label>Status</label><select id="im_status">
-          <option value="planned">U planu</option><option value="ordered">Naručeno</option><option value="paid">Plaćeno</option>
+          <option value="planned">U planu</option><option value="sample">Uzorci</option><option value="ordered">Naručeno</option><option value="paid">Plaćeno</option>
           <option value="transit">U transportu</option><option value="customs">Carina</option><option value="arrived">Stiglo</option><option value="cancelled">Otkazano</option>
         </select></div>
         <div class="field"><label>Valuta</label><select id="im_currency"><option>EUR</option><option>USD</option><option>CNY</option><option>RSD</option></select></div>
@@ -1558,8 +1669,13 @@ table.imp-items .num,table.imp-items th.num{text-align:right}
       </div>
       <div class="frow3">
         <div class="field"><label>Naručeno</label><input id="im_ordered_at" type="date"></div>
-        <div class="field"><label>Plaćeno</label><input id="im_paid_at" type="date"></div>
         <div class="field"><label>Očekuje se</label><input id="im_eta" type="date"></div>
+        <div class="field"><label>Rok fabrike (dana)</label><input id="im_lead_days" type="number" min="0" placeholder="20–35"></div>
+      </div>
+      <div class="frow3">
+        <div class="field"><label>Avans %</label><input id="im_advance_pct" type="number" min="0" max="100" placeholder="30"></div>
+        <div class="field"><label>Avans plaćen</label><input id="im_advance_paid_at" type="date"></div>
+        <div class="field"><label>Ostatak plaćen</label><input id="im_paid_at" type="date"></div>
       </div>
       <div class="sec-title">Šta je naručeno</div>
       <div id="impRows"></div>
@@ -1567,9 +1683,16 @@ table.imp-items .num,table.imp-items th.num{text-align:right}
       <div class="sec-title">Troškovi ture (u RSD)</div>
       <div class="frow3">
         <div class="field"><label>Vozarina / transport</label><input id="im_freight_cost" type="number" step="0.01" value="0"></div>
-        <div class="field"><label>Carina i PDV</label><input id="im_duty_cost" type="number" step="0.01" value="0"></div>
+        <div class="field"><label>Carinska stopa % <button type="button" class="mini-btn" id="impCalcDuty" style="margin-left:6px">Izračunaj</button></label><input id="im_duty_pct" type="number" step="0.1" placeholder="proveri kod Uprave carina"></div>
+        <div class="field"><label>Carina (RSD)</label><input id="im_duty_cost" type="number" step="0.01" value="0"></div>
+      </div>
+      <div class="frow3">
+        <div class="field"><label>PDV pri uvozu (RSD)</label><input id="im_vat_cost" type="number" step="0.01" value="0"></div>
+        <div class="field" style="display:flex;align-items:flex-end"><label class="check" style="display:flex;gap:8px;align-items:center;font-size:13px;margin:0"><input type="checkbox" id="im_vat_rec"> PDV se odbija (firma u sistemu PDV)</label></div>
         <div class="field"><label>Ostalo (špedicija, banka…)</label><input id="im_other_cost" type="number" step="0.01" value="0"></div>
       </div>
+      <div class="sec-title">Kontrola uzorka (pre avansa)</div>
+      <div id="impQc" class="qc-grid"></div>
       <div class="frow">
         <div class="field"><label>Broj pošiljke / špediter</label><input id="im_tracking"></div>
         <div class="field"><label>Stiglo</label><input id="im_arrived_at" type="date"></div>
@@ -1595,7 +1718,16 @@ table.imp-items .num,table.imp-items th.num{text-align:right}
       <div class="frow3">
         <div class="field"><label>Nabavna (RSD) *</label><input id="p_buy" type="number" step="0.01" required></div>
         <div class="field"><label>Prodajna (RSD) *</label><input id="p_sell" type="number" step="0.01" required></div>
-        <div class="field"><label>"Bila" cena</label><input id="p_cmp" type="number" step="0.01"></div>
+        <div class="field"><label>Veleprodajna (potkivači)</label><input id="p_whole" type="number" step="0.01" placeholder="25–30% ispod"></div>
+      </div>
+      <div class="frow3">
+        <div class="field"><label>Cena konkurencije (Clair, System Line)</label><input id="p_cmp" type="number" step="0.01" placeholder="referenca sa PDV"></div>
+        <div class="field"><label>Profil (širina × debljina)</label><input id="p_profile" placeholder="22x8"></div>
+        <div class="field"><label>Kapne</label><input id="p_clips" list="clipsList" placeholder="prednja 1 prstna, zadnja 2 bočne"><datalist id="clipsList"><option>prednja 1 prstna, zadnja 2 bočne</option><option>1 prstna</option><option>bez kapni</option></datalist></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Fabrički minimum (MOQ, kom)</label><input id="p_moq" type="number" min="0" placeholder="1000"></div>
+        <div class="field"><label>Težina komada (g)</label><input id="p_weight" type="number" min="0" placeholder="npr. 420"></div>
       </div>
       <div class="hint" id="p_hint"></div>
       <div class="frow">
@@ -1610,7 +1742,7 @@ table.imp-items .num,table.imp-items th.num{text-align:right}
         <div class="field"><label>Link slike</label><input id="p_img" placeholder="https://…"></div>
         <div class="field"><label>Status</label><select id="p_status"><option value="active">Aktivan</option><option value="draft">Priprema</option><option value="archived">Arhiviran</option></select></div>
       </div>
-      <div class="sec-title">Veličine i stanje</div>
+      <div class="sec-title">Veličine i stanje <span class="page-sub" style="font-weight:400;text-transform:none;letter-spacing:0">(veličina, prednja/zadnja, komada, granica upozorenja)</span></div><datalist id="posList"><option>prednja</option><option>zadnja</option><option>ravna</option><option>žleb</option><option>levo</option><option>desno</option></datalist>
       <div id="sizeRows"></div>
       <button type="button" class="mini-btn" id="addSizeBtn">+ Veličina</button>
       <div class="field" style="margin-top:14px"><label>Napomena</label><textarea id="p_note"></textarea></div>
@@ -1962,8 +2094,8 @@ table.imp-items .num,table.imp-items th.num{text-align:right}
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=202609181118"></script>
-<script>window.HTML_BUILD="202609181118";</script>
-<script src="app.js?v=202609181118"></script>
+<script src="config.js?v=202609181323"></script>
+<script>window.HTML_BUILD="202609181323";</script>
+<script src="app.js?v=202609181323"></script>
 </body>
 </html>
