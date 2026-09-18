@@ -1,0 +1,1969 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POTKOVICE · CRM</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231E2933'/><g fill='none' stroke='%23EDE6DA' stroke-width='9' stroke-linecap='round'><path d='M30 26 L30 56 a20 20 0 0 0 40 0 L70 26'/><circle cx='30' cy='72' r='5' fill='%23EDE6DA' stroke='none'/><circle cx='70' cy='72' r='5' fill='%23EDE6DA' stroke='none'/></g></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:#f3f2ef;
+  --surface:#fffefb;
+  --ink:#171c21;
+  --ink-2:#48525b;
+  --muted:#868e96;
+  --line:#e0ded6;
+  --line-soft:#eceae3;
+  --gold:#1E2933;
+  --gold-deep:#1E2933;
+  --gold-text:#8a5a2b;
+  --gold-wash:#efe9e1;
+  --gold-wash-2:#e6ddd1;
+  --gold-grad:linear-gradient(135deg,#33465a 0%,#1E2933 60%,#121920 100%);
+  --sage:#A9713F;
+  --bone:#EDE6DA;
+  --blue:#2a78d6;
+  --blue-text:#1c5cab;
+  --blue-wash:#e6eefb;
+  --shadow-sm:0 1px 2px rgba(23,28,33,.06);
+  --shadow-md:0 8px 26px -8px rgba(23,28,33,.16);
+  --shadow-lg:0 24px 60px -12px rgba(23,28,33,.25);
+  --radius:14px;
+  --font-ui:'Inter',system-ui,-apple-system,sans-serif;
+  --font-display:'Cormorant Garamond',Georgia,serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+html{overflow-x:clip}
+body{overflow-x:clip}
+body{font-family:var(--font-ui);background:var(--page);color:var(--ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
+a{color:var(--blue-text)}
+::placeholder{color:var(--muted)}
+
+/* ---------- LOGIN ---------- */
+.login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(169,113,63,.20), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(169,113,63,.16), transparent 55%),
+    var(--page);}
+.login-card{width:100%;max-width:400px;background:var(--surface);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow-lg);padding:44px 40px 40px;position:relative;overflow:hidden}
+.login-card::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:var(--gold-grad)}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:30px}
+.brand-mark{width:44px;height:44px;border-radius:12px;background:#141310;color:#EDE6DA;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:22px;flex:none}
+.brand-name{font-family:var(--font-display);font-weight:700;font-size:19px;letter-spacing:-.02em}
+.brand-sub{font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.06em;text-transform:uppercase}
+.login-title{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
+.login-sub{color:var(--ink-2);margin-bottom:28px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-2);margin-bottom:6px}
+.field input{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:10px;background:#fdfcfa;transition:border-color .15s, box-shadow .15s;font-size:14.5px}
+.field input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(23,28,33,.14)}
+.btn-primary{width:100%;padding:12px;border:none;border-radius:10px;background:#1E2933;color:#EDE6DA;font-weight:600;font-size:15px;transition:transform .1s, box-shadow .15s;box-shadow:var(--shadow-sm)}
+.btn-primary:hover{box-shadow:0 6px 18px -4px rgba(20,19,16,.35)}
+.btn-primary:active{transform:scale(.985)}
+.login-err{display:none;background:#fbe5e5;color:#a32c2c;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:16px}
+
+/* ---------- APP SHELL ---------- */
+.app{display:none;min-height:100vh}
+.topbar{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.86);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);}
+.topbar-inner{max-width:1280px;margin:0 auto;padding:0 24px;height:62px;display:flex;align-items:center;gap:18px}
+.topbar .brand{margin:0}
+.topbar .brand-mark{width:34px;height:34px;border-radius:9px;font-size:17px}
+.topbar .brand-name{font-size:16px}
+.top-search{flex:1;max-width:420px;position:relative}
+.top-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.top-search input{width:100%;padding:9px 14px 9px 38px;border:1px solid var(--line);border-radius:99px;background:#f6f4ee;transition:all .15s}
+.top-search input:focus{outline:none;background:#fff;border-color:var(--gold);box-shadow:0 0 0 3px rgba(23,28,33,.12)}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.user-chip{display:flex;align-items:center;gap:9px;padding:5px 12px 5px 6px;border:1px solid var(--line);border-radius:99px;background:#fff}
+.avatar{width:26px;height:26px;border-radius:50%;background:var(--gold-grad);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.user-name{font-weight:600;font-size:13px}
+.icon-btn{border:1px solid var(--line);background:#fff;border-radius:99px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--ink-2);transition:all .15s}
+.icon-btn:hover{border-color:#d8d3c6;background:#faf8f2}
+
+.main{max-width:1280px;margin:0 auto;padding:28px 24px 80px}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+.page-title{font-family:var(--font-display);font-size:26px;font-weight:700;letter-spacing:-.03em}
+.page-sub{color:var(--muted);margin-top:2px;font-size:13.5px}
+.btn-gold{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border:none;border-radius:10px;background:var(--gold-grad);color:#fff;font-weight:600;font-size:14px;box-shadow:0 4px 14px -4px rgba(23,28,33,.45);transition:transform .1s, filter .15s}
+.btn-gold:hover{filter:brightness(1.05)}
+.btn-gold:active{transform:scale(.98)}
+
+/* ---------- STATS ---------- */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden}
+.stat-label{font-size:12.5px;font-weight:600;color:var(--muted);letter-spacing:.02em;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.stat-dot{width:8px;height:8px;border-radius:3px;background:var(--gold-grad)}
+.stat-value{font-family:var(--font-display);font-size:30px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.stat-note{font-size:12px;color:var(--muted);margin-top:7px}
+.stat-note b{color:var(--ink-2);font-weight:600}
+
+/* ---------- FILTERS ---------- */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.seg{display:inline-flex;background:#f1eee6;border-radius:10px;padding:3px;gap:2px}
+.seg button{border:none;background:transparent;padding:7px 14px;border-radius:8px;font-weight:600;font-size:13px;color:var(--ink-2);transition:all .15s}
+.seg button.active{background:#fff;color:var(--ink);box-shadow:var(--shadow-sm)}
+.select-wrap{position:relative}
+.select-wrap select{appearance:none;padding:8px 32px 8px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;font-weight:500;font-size:13px;color:var(--ink-2)}
+.select-wrap::after{content:"";position:absolute;right:12px;top:50%;width:7px;height:7px;border-right:1.6px solid var(--muted);border-bottom:1.6px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.toolbar .count{margin-left:auto;font-size:12.5px;color:var(--muted)}
+
+/* ---------- TABLE ---------- */
+.table-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden}
+table{width:100%;border-collapse:collapse}
+thead th{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;text-align:left;padding:12px 16px;border-bottom:1px solid var(--line);background:#fcfbf8;white-space:nowrap}
+tbody td{padding:14px 16px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+tbody tr{cursor:pointer;transition:background .12s;position:relative}
+tbody tr:hover{background:#fcfaf4}
+tbody tr:last-child td{border-bottom:none}
+td.lead-cell{min-width:190px}
+.accent{position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0}
+.accent.gold{background:var(--gold)}
+.accent.blue{background:var(--blue)}
+.lead-name{font-weight:600;font-size:14.5px}
+.lead-social{font-size:12.5px;color:var(--muted);margin-top:1px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.contact{font-size:13px;color:var(--ink-2);line-height:1.45}
+.contact .email{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:99px;font-size:12px;font-weight:600;white-space:nowrap}
+.badge .bdot{width:7px;height:7px;border-radius:50%}
+.badge.src-gold{background:var(--gold-wash);color:var(--gold-text)}
+.badge.src-gold .bdot{background:var(--gold)}
+.badge.src-blue{background:var(--blue-wash);color:var(--blue-text)}
+.badge.src-blue .bdot{background:var(--blue)}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:99px;font-size:12px;font-weight:600;border:none;white-space:nowrap}
+.pill .pdot{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.75}
+.date-cell{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.activity-cell{font-size:12.5px;color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.activity-cell b{color:var(--ink-2);font-weight:600}
+.src-plain{font-size:13px;color:var(--ink-2)}
+.empty{padding:60px 20px;text-align:center;color:var(--muted)}
+
+/* status pill colors */
+.st-new{background:#eef1f4;color:#3f4a56}
+.st-contacted{background:#fdf1d8;color:#8a6100}
+.st-responded{background:#e2f3ee;color:#0d6b4f}
+.st-call_booked{background:#ece8fb;color:#4a3aa7}
+.st-call_held{background:#e3edfb;color:#1c5cab}
+.st-client{background:#e2f4e2;color:#067306}
+.st-lost{background:#fbe5e5;color:#a32c2c}
+.st-no_response{background:#f0efec;color:#6b6961}
+
+/* ---------- DRAWER ---------- */
+.overlay{position:fixed;inset:0;background:rgba(20,19,16,.35);opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
+.overlay.open{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:520px;max-width:100vw;background:var(--surface);z-index:60;transform:translateX(105%);visibility:hidden;transition:transform .3s cubic-bezier(.2,.8,.2,1),visibility 0s .3s;box-shadow:var(--shadow-lg);display:flex;flex-direction:column}
+.drawer.open{transform:translateX(0);visibility:visible;transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.drawer-head{padding:22px 26px 0;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fdfbf5, #fff)}
+.drawer-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px}
+.drawer-title{font-family:var(--font-display);font-size:21px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.drawer-close{margin-left:auto;flex:none}
+.drawer-badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.drawer-tabs{display:flex;gap:22px}
+.drawer-tabs button{border:none;background:none;padding:0 2px 12px;font-weight:600;font-size:13.5px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.drawer-tabs button.active{color:var(--ink);border-color:var(--gold)}
+.drawer-body{flex:1;overflow-y:auto;padding:22px 26px}
+.info-grid{display:grid;grid-template-columns:1fr;gap:2px}
+.info-row{display:flex;gap:14px;padding:9px 0;border-bottom:1px solid var(--line-soft);font-size:13.5px}
+.info-row .k{width:110px;flex:none;color:var(--muted);font-weight:500}
+.info-row .v{color:var(--ink);word-break:break-word}
+.status-select-row{display:flex;align-items:center;gap:10px;margin:16px 0 6px}
+.status-select-row label{font-size:12.5px;font-weight:600;color:var(--ink-2)}
+
+/* timeline */
+.timeline{display:flex;flex-direction:column;gap:0;margin-top:4px}
+.t-item{display:flex;gap:12px;position:relative;padding-bottom:18px}
+.t-item::before{content:"";position:absolute;left:13px;top:30px;bottom:0;width:2px;background:var(--line-soft)}
+.t-item:last-child::before{display:none}
+.t-icon{width:28px;height:28px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;z-index:1}
+.t-icon.comment{background:var(--gold-wash-2);color:var(--gold-deep)}
+.t-icon.status{background:#eef1f4;color:#3f4a56}
+.t-icon.fathom{background:#ece8fb;color:#4a3aa7}
+.t-icon.screenshot{background:var(--blue-wash);color:var(--blue-text)}
+.t-content{flex:1;min-width:0}
+.t-meta{font-size:12px;color:var(--muted);margin-bottom:3px}
+.t-meta b{color:var(--ink);font-weight:600}
+.t-body{background:#faf9f5;border:1px solid var(--line-soft);border-radius:10px;padding:10px 13px;font-size:13.5px;white-space:pre-wrap;word-break:break-word}
+.t-body a{font-weight:500}
+.t-img{margin-top:8px;max-width:100%;border-radius:10px;border:1px solid var(--line);cursor:zoom-in;max-height:220px;object-fit:cover;display:block}
+.t-status-line{font-size:13px;color:var(--ink-2);padding:2px 0}
+
+/* composer */
+.composer{border-top:1px solid var(--line);padding:16px 26px 18px;background:#fdfcf9}
+.composer textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px 14px;min-height:70px;resize:vertical;background:#fff}
+.composer textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(23,28,33,.12)}
+.composer-actions{display:flex;align-items:center;gap:8px;margin-top:10px}
+.mini-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--line);border-radius:9px;background:#fff;font-weight:600;font-size:12.5px;color:var(--ink-2);transition:all .15s}
+.mini-btn:hover{border-color:#d8d3c6;background:#faf8f2}
+.composer .btn-gold{margin-left:auto;padding:8px 18px;font-size:13.5px}
+.attach-preview{display:none;align-items:center;gap:8px;margin-top:10px;font-size:12.5px;color:var(--ink-2);background:var(--blue-wash);border-radius:9px;padding:7px 12px}
+.attach-preview img{height:34px;border-radius:6px}
+.attach-preview button{border:none;background:none;color:var(--blue-text);font-weight:700}
+
+/* lightbox */
+.lightbox{position:fixed;inset:0;background:rgba(15,14,12,.88);z-index:100;display:none;align-items:center;justify-content:center;padding:30px;cursor:zoom-out}
+.lightbox.open{display:flex}
+.lightbox img{max-width:100%;max-height:100%;border-radius:12px}
+
+/* modal (new lead) */
+.modal-wrap{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-wrap.open{display:flex}
+.modal-bg{position:absolute;inset:0;background:rgba(20,19,16,.4)}
+.modal{position:relative;background:#fff;border-radius:18px;box-shadow:var(--shadow-lg);width:100%;max-width:460px;padding:28px;max-height:90vh;overflow-y:auto}
+.modal h3{font-family:var(--font-display);font-size:19px;margin-bottom:18px}
+.modal .field input,.modal .field select{width:100%;padding:10px 13px;border:1px solid var(--line);border-radius:10px;background:#fdfcfa}
+.modal .field input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(23,28,33,.12)}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.btn-ghost{padding:10px 16px;border:1px solid var(--line);border-radius:10px;background:#fff;font-weight:600;font-size:13.5px;color:var(--ink-2)}
+
+/* toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#141310;color:#fff;padding:11px 20px;border-radius:99px;font-size:13.5px;font-weight:500;z-index:120;transition:transform .25s;box-shadow:var(--shadow-lg)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* ---------- FOLLOW UP SECTION ---------- */
+.fu-section{margin-bottom:22px;display:none}
+.fu-head{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+.fu-title{font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:-.01em}
+.fu-count{background:var(--gold-grad);color:#fff;font-size:11.5px;font-weight:700;border-radius:99px;padding:2px 9px}
+.fu-cards{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px}
+.fu-card{flex:0 0 250px;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:12px;padding:13px 15px;box-shadow:var(--shadow-sm);cursor:pointer;transition:box-shadow .15s}
+.fu-card:hover{box-shadow:var(--shadow-md)}
+.fu-card.overdue{border-left-color:#d03b3b;background:#fffafa}
+.fu-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.fu-name{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fu-date{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--gold-text);margin-top:3px}
+.fu-card.overdue .fu-date{color:#a32c2c}
+.fu-overdue-tag{font-size:10.5px;font-weight:700;letter-spacing:.04em;background:#fbe5e5;color:#a32c2c;border-radius:5px;padding:2px 6px;text-transform:uppercase}
+.fu-card-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:9px;gap:8px}
+.fu-done{border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 11px;font-size:12px;font-weight:600;color:#0d6b4f;transition:all .15s}
+.fu-done:hover{background:#e2f3ee;border-color:#bfe3d6}
+
+/* follow-up bell button */
+.fu-btn{border:none;background:none;padding:3px;border-radius:7px;color:#c9c4b6;display:inline-flex;align-items:center;transition:all .15s;vertical-align:-3px;margin-left:5px}
+.fu-btn:hover{background:var(--gold-wash-2);color:var(--gold-deep)}
+.fu-btn.on{color:var(--gold)}
+.fu-btn.overdue{color:#d03b3b}
+
+/* ---------- KANBAN ---------- */
+.kanban{display:none;gap:12px;overflow-x:auto;align-items:flex-start;padding-bottom:16px}
+.kb-col{flex:0 0 235px;background:#f4f1e9;border-radius:14px;padding:10px 10px 12px;max-height:calc(100vh - 300px);display:flex;flex-direction:column}
+.kb-col-head{display:flex;align-items:center;gap:8px;padding:3px 6px 10px;flex:none}
+.kb-col-title{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2)}
+.kb-col-count{font-size:11.5px;font-weight:700;color:var(--muted);background:#fff;border-radius:99px;padding:1px 8px;border:1px solid var(--line)}
+.kb-cards{display:flex;flex-direction:column;gap:10px;overflow-y:auto;min-height:20px;padding:2px}
+.kb-card{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:13px 14px 12px;box-shadow:var(--shadow-sm);cursor:grab;position:relative;overflow:hidden;transition:box-shadow .18s, transform .12s, border-color .18s;border-left-width:4px;touch-action:pan-y}
+.kb-card.is-organic{border-left-color:var(--gold)}
+.kb-card.is-automate{border-left-color:var(--blue)}
+.kb-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.kb-card:active{cursor:grabbing}
+.kb-card.dragging{opacity:.32;box-shadow:none}
+.kb-drag-ghost{position:fixed;z-index:200;margin:0;pointer-events:none;box-shadow:var(--shadow-lg);transform:rotate(1.6deg) scale(1.03);opacity:.97;transition:none;left:0;top:0}
+body.kb-dragging{cursor:grabbing;-webkit-user-select:none;user-select:none}
+.kb-col{transition:background .15s, box-shadow .15s}
+.kb-col.drop-target{background:var(--gold-wash-2);box-shadow:inset 0 0 0 2px var(--gold)}
+.kb-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
+.kb-name{font-weight:650;font-size:14px;line-height:1.3;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.kb-social{font-size:12px;color:var(--muted);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kb-meta{display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap}
+.kb-meta .badge{padding:3px 9px;font-size:10.5px}
+.kb-card .fu-btn{flex:none;margin-left:0;margin-top:-1px}
+.kb-fu{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:var(--gold-text);background:var(--gold-wash);border-radius:5px;padding:2px 6px}
+.kb-fu.overdue{color:#a32c2c;background:#fbe5e5}
+.kb-empty{font-size:12px;color:#b6b2a6;text-align:center;padding:14px 4px}
+
+/* followup modal */
+.fu-modal .field input[type="date"]{width:100%;padding:10px 13px;border:1px solid var(--line);border-radius:10px;background:#fdfcfa;font-size:14px}
+.fu-quick{display:flex;gap:8px;margin:4px 0 6px;flex-wrap:wrap}
+.fu-quick button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:5px 13px;font-size:12.5px;font-weight:600;color:var(--ink-2);transition:all .15s}
+.fu-quick button:hover{border-color:var(--gold);background:var(--gold-wash);color:var(--gold-deep)}
+.fu-remove{margin-right:auto;border:none;background:none;color:#a32c2c;font-weight:600;font-size:13px;padding:10px 0}
+
+/* mobile cards */
+.cards{display:none;flex-direction:column;gap:12px}
+.lead-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;cursor:pointer}
+.lead-card .accent{top:0;bottom:0;border-radius:0}
+.lead-card-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:8px}
+.lead-card .contact{margin:6px 0 10px}
+.lead-card-badges{display:flex;gap:8px;flex-wrap:wrap}
+
+@media (max-width: 980px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .table-card{display:none}
+  .cards{display:flex}
+  .kb-col{flex:0 0 82vw;max-height:none}
+  .fu-card{flex:0 0 78vw}
+  .drawer{width:100vw}
+  .topbar-inner{padding:0 16px;gap:10px}
+  .main{padding:20px 16px 60px}
+  .top-search{max-width:none}
+  .user-chip .user-name{display:none}
+  .brand-name{display:none}
+}
+/* ===== COMPLETE CRM additions ===== */
+.proj-select{position:relative}
+.proj-select select{appearance:none;padding:7px 30px 7px 12px;border:1px solid var(--line);border-radius:99px;background:#141310;color:#EDE6DA;font-weight:700;font-size:12.5px;letter-spacing:.06em}
+.proj-select::after{content:"";position:absolute;right:12px;top:50%;width:6px;height:6px;border-right:1.6px solid #EDE6DA;border-bottom:1.6px solid #EDE6DA;transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:22px;overflow-x:auto}
+.tabs button{border:none;background:none;padding:10px 14px 12px;font-weight:600;font-size:14px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button.active{color:var(--ink);border-color:var(--gold)}
+.view{display:none}.view.active{display:block}
+.stats.s3{grid-template-columns:repeat(3,1fr)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:18px 20px}
+.panel h4{font-family:var(--font-display);font-size:15px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.list-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-soft);font-size:13.5px;cursor:pointer}
+.list-row:last-child{border-bottom:none}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.pos{color:#067306}.neg{color:#a32c2c}
+.st-confirmed{background:#fdf1d8;color:#8a6100}
+.st-packed{background:#ece8fb;color:#4a3aa7}
+.st-shipped{background:#e3edfb;color:#1c5cab}
+.st-delivered{background:#e2f4e2;color:#067306}
+.st-returned{background:#fbe5e5;color:#a32c2c}
+.st-cancelled{background:#f0efec;color:#6b6961}
+.ch-badge{display:inline-flex;padding:3px 9px;border-radius:99px;font-size:11.5px;font-weight:600}
+.ch-shopify{background:#e2f3ee;color:#0d6b4f}
+.ch-instagram{background:var(--gold-wash);color:var(--gold-text)}
+.ch-other{background:#eef1f4;color:#3f4a56}
+.sizes{display:flex;gap:6px;flex-wrap:wrap}
+.size-chip{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:9px;overflow:hidden;font-size:12.5px;background:#fff}
+.size-chip .sz{padding:4px 8px;font-weight:700;background:#f6f4ee}
+.size-chip .qty{padding:4px 8px;min-width:26px;text-align:center;font-weight:600}
+.size-chip.low .qty{color:#a32c2c;background:#fff4f4}
+.size-chip button{border:none;background:none;padding:4px 7px;color:var(--muted);font-weight:700}
+.size-chip button:hover{background:var(--gold-wash);color:var(--gold-deep)}
+.modal.wide{max-width:640px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.frow3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.modal .field textarea{width:100%;padding:10px 13px;border:1px solid var(--line);border-radius:10px;background:#fdfcfa;min-height:60px}
+.modal .field select{appearance:auto}
+.sec-title{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;margin:18px 0 10px}
+.item-row{display:grid;grid-template-columns:2fr 1fr 70px 1fr 30px;gap:8px;align-items:center;margin-bottom:8px}
+.item-row select,.item-row input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fdfcfa;font-size:13px}
+.x-btn{border:none;background:none;color:#a32c2c;font-size:18px;font-weight:700}
+.hint{font-size:12px;color:var(--muted);margin-top:4px}
+.hint.warn{color:#a36a00}
+.sum-box{background:#faf9f5;border:1px solid var(--line-soft);border-radius:12px;padding:12px 14px;margin-top:12px;font-size:13.5px}
+.sum-box div{display:flex;justify-content:space-between;padding:2px 0}
+.sum-box .tot{font-weight:700;border-top:1px solid var(--line);margin-top:6px;padding-top:6px}
+.prod-thumb{width:38px;height:48px;border-radius:8px;object-fit:cover;background:#f1eee6;flex:none}
+.prod-cell{display:flex;align-items:center;gap:12px}
+.soon{padding:60px 20px;text-align:center;color:var(--muted)}
+.soon b{display:block;font-family:var(--font-display);font-size:20px;color:var(--ink);margin-bottom:6px}
+.inline-input{width:110px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:#fdfcfa}
+@media (max-width:980px){
+  .table-card{display:block;overflow-x:auto}
+  .two-col{grid-template-columns:1fr}
+  .stats.s3{grid-template-columns:repeat(2,1fr)}
+  .frow,.frow3{grid-template-columns:1fr}
+  .item-row{grid-template-columns:1fr 1fr;}
+  .top-search{display:none}
+  .stat-value{font-size:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stat{padding:14px 12px}
+  .stat-label{font-size:11.5px}
+}
+/* ===== animacije i sekcije ===== */
+.page-title,.drawer-title,.modal h3,.login-title,.brand-name{font-family:var(--font-display);font-weight:700;letter-spacing:.01em}
+.page-title{font-size:34px}
+.stat-value{font-family:var(--font-display);font-size:34px}
+.proj-select select{background:#1E2933;color:#EDE6DA}
+.proj-select::after{border-color:#EDE6DA}
+.brand-mark{background:#1E2933;color:#EDE6DA;font-family:var(--font-display)}
+.tabs button{position:relative;transition:color .2s}
+.tabs button::after{content:"";position:absolute;left:14px;right:14px;bottom:-1px;height:2px;background:var(--gold);transform:scaleX(0);transition:transform .35s var(--ease)}
+.tabs button.active{border-color:transparent}
+.tabs button.active::after{transform:scaleX(1)}
+.tab-badge{display:inline-flex;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:#a32c2c;color:#fff;font-size:10.5px;align-items:center;justify-content:center;margin-left:6px;animation:pop .4s var(--ease)}
+
+/* ulazne animacije */
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(163,44,44,.35)}50%{box-shadow:0 0 0 7px rgba(163,44,44,0)}}
+@keyframes shimmer{from{background-position:-200% 0}to{background-position:200% 0}}
+.view.active{animation:fadeUp .45s var(--ease)}
+.view.active .stat,.view.active .panel,.view.active .table-card,.view.active .kb-col,.view.active .post-card,.view.active .idea-card,.view.active .alert,.view.active .story-sec{animation:fadeUp .5s var(--ease) both}
+.view.active .stat:nth-child(2),.view.active .panel:nth-child(2),.view.active .kb-col:nth-child(2){animation-delay:.05s}
+.view.active .stat:nth-child(3),.view.active .panel:nth-child(3),.view.active .kb-col:nth-child(3){animation-delay:.1s}
+.view.active .stat:nth-child(4),.view.active .panel:nth-child(4),.view.active .kb-col:nth-child(4){animation-delay:.15s}
+.view.active .kb-col:nth-child(5){animation-delay:.2s}.view.active .kb-col:nth-child(6){animation-delay:.25s}
+.stat,.panel{transition:transform .25s var(--ease),box-shadow .25s}
+.stat:hover,.panel:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.btn-gold,.btn-primary,.mini-btn{transition:transform .15s var(--ease),box-shadow .2s,filter .2s}
+.btn-gold:hover{transform:translateY(-1px);box-shadow:0 10px 22px -8px rgba(23,28,33,.55)}
+tbody tr{transition:background .15s}
+.modal-wrap.open .modal{animation:modalIn .35s var(--ease)}
+.modal-wrap.open .modal-bg{animation:fade .3s}
+@keyframes modalIn{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.toast{background:#1E2933;color:#EDE6DA}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ---------- SPLASH ---------- */
+.splash{position:fixed;inset:0;z-index:300;background:radial-gradient(900px 600px at 50% 40%,#2b3b49,#1E2933 60%,#111820);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;color:#EDE6DA;transition:opacity .6s var(--ease),visibility .6s}
+.splash.hide{opacity:0;visibility:hidden}
+.splash svg{width:132px;height:132px;overflow:visible}
+.splash .d{fill:none;stroke-linecap:round;stroke:#EDE6DA;stroke-width:1.4;stroke-dasharray:400;stroke-dashoffset:400;animation:draw 1.1s var(--ease) forwards}
+.splash .d2{animation-delay:.18s}
+.splash .br{fill:none;stroke:#A9713F;stroke-width:1.4;stroke-dasharray:60;stroke-dashoffset:60;animation:draw .6s .55s var(--ease) forwards}
+.splash .hl{font-family:'Cormorant Garamond',serif;font-size:46px;font-weight:600;fill:#EDE6DA;opacity:0;animation:hIn .7s .7s var(--ease) forwards;transform-origin:60px 60px}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes hIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:none}}
+.splash .word{font-family:'Cormorant Garamond',serif;font-size:30px;letter-spacing:.55em;padding-left:.55em;opacity:0;animation:wordIn .9s .9s var(--ease) forwards}
+@keyframes wordIn{from{opacity:0;letter-spacing:1.1em}to{opacity:1;letter-spacing:.55em}}
+.splash .hello{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:22px;color:#b9c0b1;opacity:0;animation:fadeUp .7s 1.25s var(--ease) forwards}
+.splash .hello{text-align:center}
+.hello-sub{display:block;font-style:normal;font-size:17px;letter-spacing:.04em;color:#EDE6DA;margin-top:10px;opacity:0;animation:fadeUp .7s 1.6s var(--ease) forwards}
+.splash .line{width:0;height:1px;background:#A9713F;animation:lineGrow .8s 1s var(--ease) forwards}
+@keyframes lineGrow{to{width:120px}}
+
+/* login */
+.login-card::before{background:linear-gradient(90deg,#1E2933,#A9713F,#1E2933)}
+
+/* ---------- GARDEROBA alerti i feed ---------- */
+.alerts{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-bottom:22px}
+.alert{background:var(--surface);border:1px solid var(--line);border-left:4px solid #d08a00;border-radius:12px;padding:13px 15px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;transition:transform .2s var(--ease),box-shadow .2s}
+.alert:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.alert.out{border-left-color:#a32c2c;background:#fff9f8}
+.alert.out .a-ic{animation:pulse 1.8s infinite}
+.a-ic{width:30px;height:30px;border-radius:50%;background:#fdf1d8;color:#8a6100;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}
+.alert.out .a-ic{background:#fbe5e5;color:#a32c2c}
+.a-t{font-weight:700}
+.a-s{font-size:12.5px;color:var(--muted)}
+.feed .f-row{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-soft);font-size:13px;animation:fadeUp .4s var(--ease) both}
+.feed .f-dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none;background:var(--sage)}
+.feed .f-dot.order{background:#2a78d6}.feed .f-dot.stock{background:#d08a00}.feed .f-dot.alert{background:#a32c2c}
+.threshold{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2)}
+.threshold input{width:56px;padding:5px 8px;border:1px solid var(--line);border-radius:8px}
+
+/* ---------- OBJAVE ---------- */
+.post-card{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:12px 13px;box-shadow:var(--shadow-sm);cursor:grab;transition:box-shadow .2s,transform .15s;border-left:4px solid var(--sage);touch-action:pan-y}
+.post-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.post-card.dragging{opacity:.3}
+.fmt{display:inline-flex;padding:2px 8px;border-radius:6px;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:#e2e6dc;color:#2f4a3a}
+.fmt.carousel{background:#ece8fb;color:#4a3aa7}.fmt.story{background:#fdf1d8;color:#8a6100}.fmt.tiktok{background:#e3edfb;color:#1c5cab}
+.p-date{font-size:11.5px;font-weight:600;color:var(--ink-2);display:inline-flex;gap:4px;align-items:center}
+.p-date.late{color:#a32c2c}
+.p-links{display:flex;gap:6px;margin-top:8px}
+.p-links a{font-size:11.5px;font-weight:600;text-decoration:none;padding:3px 8px;border-radius:6px;background:#eef1f4;color:#3f4a56}
+.p-links a.drive{background:#e2f3ee;color:#0d6b4f}
+.st-idea{background:#eef1f4;color:#3f4a56}.st-scripting{background:#fdf1d8;color:#8a6100}.st-filming{background:#ece8fb;color:#4a3aa7}.st-editing{background:#e3edfb;color:#1c5cab}.st-scheduled{background:#e2e6dc;color:#1E2933}.st-published{background:#e2f4e2;color:#067306}
+.st-proposed{background:#eef1f4;color:#3f4a56}.st-approved{background:#fdf1d8;color:#8a6100}.st-in_progress{background:#e3edfb;color:#1c5cab}.st-done{background:#e2f4e2;color:#067306}.st-rejected{background:#f0efec;color:#6b6961}
+.cal{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.cal-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line)}
+.cal-head b{font-family:var(--font-display);font-size:22px;text-transform:capitalize}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.cal-dow{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;padding:8px;border-bottom:1px solid var(--line);background:#faf8f2}
+.cal-day{min-width:0;min-height:110px;border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);padding:6px;display:flex;flex-direction:column;gap:4px;transition:background .15s}
+.cal-day.other{background:#faf8f3;color:#b8b4aa}
+.cal-day.today .cal-n{background:#1E2933;color:#EDE6DA}
+.cal-day.drop-target{background:#e2e6dc;box-shadow:inset 0 0 0 2px #1E2933}
+.cal-n{font-size:12px;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.cal-chip{display:block;max-width:100%;font-size:11px;font-weight:600;padding:3px 6px;border-radius:6px;background:#e2e6dc;color:#1E2933;cursor:grab;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid var(--sage);animation:pop .3s var(--ease)}
+.cal-chip.published{background:#e2f4e2;color:#067306;border-color:#067306}
+.cal-add{margin-top:auto;border:none;background:none;color:#c2c6bb;font-size:16px;align-self:flex-end;opacity:0;transition:opacity .15s}
+.cal-day:hover .cal-add{opacity:1}
+.week-strip{display:flex;gap:10px;overflow-x:auto;margin-bottom:18px}
+.ws-day{flex:1 1 0;min-width:120px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.ws-day.today{border-color:#1E2933;box-shadow:0 0 0 1px #1E2933}
+.ws-d{font-size:11.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.ws-empty{font-size:12px;color:#c9c4b6;margin-top:6px}
+
+/* ---------- SAJT ---------- */
+.prio{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:5px}
+.prio.high{background:#fbe5e5;color:#a32c2c}.prio.medium{background:#fdf1d8;color:#8a6100}.prio.low{background:#eef1f4;color:#6b6961}
+.cat{font-size:11px;color:var(--muted);font-weight:600}
+.vote{border:1px solid var(--line);background:#fff;border-radius:99px;padding:2px 9px;font-size:12px;font-weight:700;color:var(--ink-2);transition:all .15s}
+.vote.on{background:#1E2933;color:#EDE6DA;border-color:#1E2933;animation:pop .35s var(--ease)}
+.idea-card{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:12px 13px;box-shadow:var(--shadow-sm);cursor:grab;transition:box-shadow .2s,transform .15s;touch-action:pan-y}
+.idea-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.idea-card img{width:100%;height:110px;object-fit:cover;border-radius:9px;margin-top:8px}
+
+/* ---------- BRAND STORY ---------- */
+.story-wrap{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr);gap:22px;align-items:start}
+.story-doc{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:34px 40px;box-shadow:var(--shadow-sm)}
+.story-sec{margin-bottom:26px;position:relative}
+.story-sec input.st-title{width:100%;border:none;background:none;font-family:var(--font-display);font-size:26px;font-weight:700;color:var(--ink);padding:2px 0;outline:none}
+.story-sec textarea{width:100%;border:none;background:none;font-family:var(--font-display);font-size:20px;line-height:1.55;color:#2c3530;resize:none;outline:none;overflow:hidden;min-height:60px;padding:4px 0}
+.story-sec:focus-within::before{content:"";position:absolute;left:-20px;top:6px;bottom:6px;width:3px;border-radius:3px;background:var(--sage);animation:fade .3s}
+.story-meta{font-size:11.5px;color:var(--muted);display:flex;gap:10px;align-items:center}
+.story-meta button{border:none;background:none;color:#c2c6bb;font-size:12px}
+.story-meta button:hover{color:#a32c2c}
+.saving{font-size:12px;color:var(--sage);font-weight:600;opacity:0;transition:opacity .3s}
+.saving.on{opacity:1}
+.paper{position:sticky;top:84px;background:#fbf7ea;border-radius:6px;box-shadow:0 1px 1px rgba(0,0,0,.06),0 10px 30px -10px rgba(60,50,20,.3);padding:20px 22px 22px 46px;min-height:520px;
+  background-image:linear-gradient(90deg,transparent 34px,#e8b4b0 34px,#e8b4b0 35.5px,transparent 35.5px),repeating-linear-gradient(#fbf7ea 0 29px,#d9e3ea 29px 30px);transform:rotate(.4deg);transition:transform .3s var(--ease)}
+.paper:hover{transform:rotate(0)}
+.paper::before{content:"";position:absolute;top:-10px;left:50%;width:90px;height:22px;transform:translateX(-50%) rotate(-2deg);background:rgba(169,113,63,.35);border-radius:2px}
+.paper h4{font-family:'Caveat',cursive;font-size:30px;line-height:30px;margin-bottom:10px;color:#1E2933}
+.who{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.who button{border:1px solid #d9d2bc;background:#fffdf5;border-radius:99px;padding:3px 11px;font-size:12px;font-weight:600;color:#5d5a4d;transition:all .2s}
+.who button.active{background:#1E2933;color:#EDE6DA;border-color:#1E2933}
+.note{font-family:'Caveat',cursive;font-size:22px;line-height:30px;color:#26312b;position:relative;padding-right:40px;animation:fadeUp .35s var(--ease) both}
+.note .by{font-family:var(--font-ui);font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:1px 6px;border-radius:4px;margin-right:6px;vertical-align:3px}
+.by.konstantin{background:#e2e6dc;color:#1E2933}.by.stefan{background:#efe0d2;color:#8a5a2b}.by.marjan{background:#e3edfb;color:#1c5cab}.by.other{background:#eee;color:#555}
+.note.done .txt{text-decoration:line-through;opacity:.5}
+.note .n-act{position:absolute;right:0;top:0;display:none;gap:2px}
+.note:hover .n-act{display:flex}
+.note .n-act button{border:none;background:none;font-size:14px;color:#8a8574;padding:0 2px}
+.note.pinned .txt::before{content:"📌 ";font-size:15px}
+.paper textarea{width:100%;border:none;background:transparent;font-family:'Caveat',cursive;font-size:22px;line-height:30px;resize:none;outline:none;color:#26312b;margin-top:6px;min-height:60px}
+.paper .hint{font-family:var(--font-ui)}
+.writer{display:flex;align-items:center;gap:6px;margin-top:14px;font-size:12px;font-weight:600;color:#8a8574;flex-wrap:wrap}
+.writer button{border:1px dashed #cfc7ad;background:transparent;border-radius:99px;padding:3px 11px;font-size:12px;font-weight:600;color:#5d5a4d;transition:all .2s}
+.writer button.active{border-style:solid;background:#A9713F;color:#fff;border-color:#A9713F;animation:pop .3s var(--ease)}
+
+@media (max-width:980px){
+  .story-wrap{grid-template-columns:1fr}
+  .story-doc{padding:22px 20px}
+  .paper{position:relative;top:0}
+  .cal-day{min-height:70px}
+  .cal-chip{font-size:9.5px}
+  .page-title{font-size:28px}
+}
+
+/* ---------- POVRATI ---------- */
+.rt-type{display:inline-flex;padding:2px 8px;border-radius:6px;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.rt-type.return{background:#fdf1d8;color:#8a6100}.rt-type.exchange{background:#e3edfb;color:#1c5cab}.rt-type.complaint{background:#fbe5e5;color:#a32c2c}.rt-type.feedback{background:#e2e6dc;color:#1E2933}
+.st-in_review{background:#fdf1d8;color:#8a6100}.st-waiting_package{background:#ece8fb;color:#4a3aa7}.st-received{background:#e3edfb;color:#1c5cab}.st-resolved{background:#e2f4e2;color:#067306}
+.ret-card{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:12px 13px;box-shadow:var(--shadow-sm);cursor:grab;transition:box-shadow .2s,transform .15s;touch-action:pan-y;border-left:4px solid var(--sage)}
+.ret-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.ret-card.late{border-left-color:#a32c2c;background:#fffafa}
+.ret-card.soon{border-left-color:#d08a00}
+.due{font-size:11px;font-weight:700;color:var(--ink-2)}
+.due.late{color:#a32c2c}.due.soon{color:#a36a00}
+.photos{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.photos img{width:84px;height:84px;object-fit:cover;border-radius:10px;border:1px solid var(--line);cursor:zoom-in;animation:pop .3s var(--ease)}
+.bars .bar-row{display:grid;grid-template-columns:160px 1fr 40px;gap:10px;align-items:center;font-size:13px;padding:5px 0}
+.bars .track{height:10px;border-radius:6px;background:#ece8dd;overflow:hidden}
+.bars .fill{height:100%;border-radius:6px;background:var(--gold);transform-origin:left;animation:grow .8s var(--ease) both}
+@keyframes grow{from{transform:scaleX(0)}}
+.quote{border-left:3px solid var(--sage);padding:6px 12px;margin:8px 0;font-family:var(--font-display);font-size:18px;color:#2c3530;cursor:pointer}
+.quote small{display:block;font-family:var(--font-ui);font-size:11.5px;color:var(--muted)}
+@media (max-width:980px){.bars .bar-row{grid-template-columns:110px 1fr 30px}}
+
+/* ---------- SAJT: kartica sa linkom ---------- */
+.site-card{display:flex;align-items:center;gap:16px;background:linear-gradient(135deg,#1E2933 0%,#24332b 60%,#2c3d33 100%);color:#EDE6DA;border-radius:16px;padding:18px 20px;margin-bottom:18px;box-shadow:0 18px 40px -18px rgba(23,28,33,.6);position:relative;overflow:hidden}
+.site-card::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(237,230,218,.12),transparent 65%);pointer-events:none}
+.site-ic{width:46px;height:46px;border-radius:12px;background:rgba(237,230,218,.12);display:flex;align-items:center;justify-content:center;flex:none}
+.site-info{flex:1;min-width:0}
+.site-lbl{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#aab3a4}
+.site-url{display:block;font-family:var(--font-display);font-size:24px;font-weight:600;color:#EDE6DA;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.01em}
+.site-url:hover{text-decoration:underline}
+.site-meta{font-size:12px;color:#aab3a4;margin-top:2px}
+.site-actions{display:flex;gap:8px;align-items:center;flex:none;flex-wrap:wrap;justify-content:flex-end}
+.site-card .mini-btn{background:rgba(237,230,218,.1);border-color:rgba(237,230,218,.25);color:#EDE6DA}
+.site-card .mini-btn:hover{background:rgba(237,230,218,.2)}
+.site-card .btn-gold{background:#EDE6DA;color:#1E2933;box-shadow:none}
+@media (max-width:980px){.site-card{flex-wrap:wrap}.site-ic{display:none}.site-url{font-size:19px}.site-actions{width:100%;justify-content:flex-start}}
+
+/* ---------- tabovi: skrol sa nagoveštajem ---------- */
+.tabs{position:relative;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent)}
+.tabs::-webkit-scrollbar{display:none}
+.tab-badge.live{background:var(--sage)}
+.range{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);animation:fadeUp .3s var(--ease)}
+.range input{padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:12.5px}
+
+/* ---------- PROMOCIJE ---------- */
+.gantt{position:relative;overflow-x:auto;padding-bottom:6px}
+.gantt-inner{position:relative;padding-top:22px}
+.gantt-months{position:relative;height:18px;margin-left:170px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.gantt-months span{position:absolute;top:0;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;border-left:1px solid var(--line-soft);padding-left:5px;height:18px}
+.gantt-row{display:flex;align-items:center;min-height:32px}
+.gantt-lbl{width:170px;flex:none}
+.gantt-track{flex:1;position:relative;height:24px}
+.gantt-bar{position:absolute;top:1px}
+.gantt-head{display:grid;position:sticky;top:0;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;border-bottom:1px solid var(--line);margin-bottom:6px}
+.gantt-head span{padding:4px 6px;border-left:1px solid var(--line-soft);white-space:nowrap}
+.gantt-row{display:grid;align-items:center;min-height:34px;position:relative}
+.gantt-lbl{font-size:12.5px;font-weight:600;padding-right:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gantt-bar{grid-row:1;height:22px;border-radius:7px;background:var(--gold-grad);color:#EDE6DA;font-size:11px;font-weight:600;display:flex;align-items:center;padding:0 8px;white-space:nowrap;overflow:hidden;cursor:pointer;transform-origin:left;animation:grow .7s var(--ease) both;box-shadow:0 4px 12px -6px rgba(23,28,33,.6)}
+.gantt-bar.planned{background:#fff;color:var(--ink-2);border:1.5px dashed var(--sage)}
+.gantt-bar.ended{background:#c9c4b6;color:#fff}
+.gantt-bar.active{box-shadow:0 0 0 3px rgba(169,113,63,.35)}
+.gantt-today{position:absolute;top:0;bottom:0;width:2px;background:#a32c2c;opacity:.7;pointer-events:none}
+.gantt-today::after{content:"danas";position:absolute;top:-2px;left:5px;font-size:10px;color:#a32c2c;font-weight:700}
+.gantt-empty{color:var(--muted);font-size:13px;padding:14px 0}
+.promo-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.promo{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow-sm);cursor:pointer;transition:transform .25s var(--ease),box-shadow .25s;position:relative;overflow:hidden}
+.promo:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.promo.active::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--sage)}
+.promo-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.promo-name{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1.1}
+.promo-when{font-size:12.5px;color:var(--muted);margin-top:4px}
+.promo-code{display:inline-flex;font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;background:#f1eee6;border-radius:6px;padding:2px 8px;letter-spacing:.06em}
+.promo-nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.promo-nums div{background:#faf9f5;border:1px solid var(--line-soft);border-radius:10px;padding:8px 10px}
+.promo-nums b{display:block;font-family:var(--font-display);font-size:20px;line-height:1.1}
+.promo-nums span{font-size:11px;color:var(--muted)}
+.lift{font-size:12px;font-weight:700;margin-top:10px;display:inline-flex;gap:6px;align-items:center;padding:3px 9px;border-radius:99px;background:#eef1f4;color:#3f4a56}
+.lift.up{background:#e2f4e2;color:#067306}.lift.down{background:#fbe5e5;color:#a32c2c}
+.promo-notes{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px;font-size:12.5px;color:var(--ink-2)}
+.promo-notes .by{font-size:9.5px;padding:1px 5px;border-radius:4px;font-weight:700;margin-right:5px;vertical-align:1px}
+.st-planned{background:#eef1f4;color:#3f4a56}.st-active{background:#e2e6dc;color:#1E2933}.st-ended{background:#f0efec;color:#6b6961}
+.pr-res{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 4px}
+.pr-res div{background:#faf9f5;border:1px solid var(--line-soft);border-radius:10px;padding:8px 10px}
+.pr-res b{display:block;font-family:var(--font-display);font-size:19px}
+.pr-res span{font-size:11px;color:var(--muted)}
+.notes-inline .note{font-size:19px;line-height:26px}
+.notes-inline textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-family:'Caveat',cursive;font-size:19px;min-height:44px;resize:none;background:#fbf7ea}
+
+/* ---------- ISTORIJA ---------- */
+.chart{position:relative;height:150px}
+.chart svg{width:100%;height:100%;overflow:visible}
+.chart .bar{fill:var(--gold);opacity:.85;transform-origin:bottom;animation:barUp .7s var(--ease) both;cursor:pointer}
+.chart .bar:hover{opacity:1}
+.chart .bar.empty{fill:#e6e1d4}
+@keyframes barUp{from{transform:scaleY(0)}}
+.chart .lbl{font-size:10px;fill:var(--muted)}
+.chart .tip{position:absolute;background:#1E2933;color:#EDE6DA;font-size:12px;padding:6px 10px;border-radius:8px;pointer-events:none;white-space:nowrap;transform:translate(-50%,-110%);opacity:0;transition:opacity .15s}
+.tl{position:relative;padding-left:26px}
+.tl::before{content:"";position:absolute;left:8px;top:8px;bottom:8px;width:2px;background:linear-gradient(var(--line),var(--line) 60%,transparent)}
+.tl-day{margin-bottom:22px;animation:fadeUp .4s var(--ease) both}
+.tl-dayhead{position:sticky;top:62px;z-index:5;display:flex;align-items:baseline;gap:10px;background:var(--page);padding:6px 0;margin-left:-26px;padding-left:26px}
+.tl-dayhead::before{content:"";position:absolute;left:3px;top:13px;width:12px;height:12px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px var(--page)}
+.tl-date{font-family:var(--font-display);font-size:21px;font-weight:700}
+.tl-sum{font-size:12px;color:var(--muted)}
+.tl-sum b{color:var(--ink-2)}
+.tl-item{display:flex;gap:12px;padding:7px 0;position:relative;border-radius:10px;transition:background .15s}
+.tl-item[data-open]{cursor:pointer}
+.tl-item[data-open]:hover{background:rgba(255,255,255,.7)}
+.tl-item::before{content:"";position:absolute;left:-22px;top:15px;width:6px;height:6px;border-radius:50%;background:var(--sage)}
+.tl-item.milestone::before{background:#a32c2c;width:10px;height:10px;left:-24px;top:13px}
+.tl-time{font-size:11.5px;color:var(--muted);width:42px;flex:none;padding-top:2px;font-variant-numeric:tabular-nums}
+.tl-ic{width:26px;height:26px;border-radius:8px;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;background:#eceae1;color:#1E2933}
+.tl-ic.order{background:#e3edfb;color:#1c5cab}.tl-ic.stock{background:#fdf1d8;color:#8a6100}.tl-ic.alert{background:#fbe5e5;color:#a32c2c}.tl-ic.post{background:#ece8fb;color:#4a3aa7}.tl-ic.ret{background:#fbe5e5;color:#a32c2c}.tl-ic.promo{background:#e2e6dc;color:#1E2933}.tl-ic.site{background:#e2f3ee;color:#0d6b4f}
+.tl-body{flex:1;min-width:0;font-size:13.5px}
+.tl-body .who{display:inline;font-weight:600;color:var(--ink-2);margin:0}
+.tl-body .ref{font-weight:700}
+.tl-milestone{background:var(--surface);border:1px solid var(--line);border-left:4px solid #a32c2c;border-radius:12px;padding:12px 14px;box-shadow:var(--shadow-sm)}
+.tl-milestone .t{font-family:var(--font-display);font-size:20px;font-weight:700}
+.tl-milestone .k{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#a32c2c;margin-bottom:2px}
+.tl-milestone p{margin-top:4px;color:var(--ink-2);white-space:pre-wrap}
+.tl-more{text-align:center;margin:10px 0 30px}
+.arch-row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line-soft);font-size:13px}
+@media (max-width:980px){.promo-list{grid-template-columns:1fr}.pr-res{grid-template-columns:1fr 1fr}.tl-dayhead{top:0}.tl-time{width:36px}}
+
+/* ---------- COMMAND PALETTE ---------- */
+.cmd-btn{flex:1;max-width:460px;display:flex;align-items:center;gap:10px;padding:9px 12px 9px 14px;border:1px solid var(--line);border-radius:99px;background:#f6f4ee;color:var(--muted);font-size:13.5px;cursor:text;transition:all .2s var(--ease);text-align:left}
+.cmd-btn:hover{background:#fff;border-color:#c9c4b6;box-shadow:var(--shadow-sm)}
+.cmd-btn span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+kbd{font-family:var(--font-ui);font-size:10.5px;font-weight:700;padding:2px 6px;border-radius:5px;border:1px solid var(--line);background:#fff;color:var(--ink-2)}
+.cmd-filter{display:inline-flex;align-items:center;gap:6px;border:1px solid #1E2933;background:#1E2933;color:#EDE6DA;border-radius:99px;padding:6px 12px;font-size:12.5px;font-weight:600;animation:pop .3s var(--ease)}
+.cmd-mobile{display:none}
+.cmd-wrap{position:fixed;inset:0;z-index:150;display:none;align-items:flex-start;justify-content:center;padding:10vh 16px 16px}
+.cmd-wrap.open{display:flex}
+.cmd-bg{position:absolute;inset:0;background:rgba(20,26,22,.45);backdrop-filter:blur(3px);animation:fade .2s}
+.cmd{position:relative;width:100%;max-width:640px;background:var(--surface);border-radius:18px;box-shadow:0 40px 90px -20px rgba(20,26,22,.55);overflow:hidden;animation:modalIn .28s var(--ease)}
+.cmd-in{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);color:var(--muted)}
+.cmd-in input{flex:1;border:none;background:none;font-size:17px;outline:none;color:var(--ink)}
+.cmd-list{max-height:min(60vh,520px);overflow-y:auto;padding:8px}
+.cmd-grp{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;padding:10px 12px 4px}
+.cmd-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;cursor:pointer;transition:background .1s}
+.cmd-item.sel,.cmd-item:hover{background:#eceae1}
+.cmd-item .ci{width:32px;height:32px;border-radius:9px;background:#f1eee6;display:flex;align-items:center;justify-content:center;font-size:14px;flex:none;color:#1E2933}
+.cmd-item.sel .ci{background:#1E2933;color:#EDE6DA}
+.cmd-item .ct{flex:1;min-width:0}
+.cmd-item .ct b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmd-item .ct small{color:var(--muted);font-size:12px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmd-item .ck{font-size:11px;color:var(--muted)}
+.cmd-item mark{background:#f3e6a8;color:inherit;border-radius:3px;padding:0 1px}
+.cmd-foot{display:flex;gap:16px;padding:10px 18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);background:#fcfbf8}
+.cmd-empty{padding:26px;text-align:center;color:var(--muted)}
+@media (max-width:980px){.cmd-btn{display:none}.cmd-mobile{display:flex}.cmd-wrap{padding:0;align-items:stretch}.cmd{max-width:none;border-radius:0}.cmd-list{max-height:none;flex:1}.cmd{display:flex;flex-direction:column}.cmd-foot{display:none}}
+
+/* ---------- KUPCI ---------- */
+.tier{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:.03em}
+.tier.nova{background:#eef1f4;color:#3f4a56}.tier.stalna{background:#e2e6dc;color:#1E2933}.tier.klub{background:#1E2933;color:#EDE6DA}.tier.vip{background:linear-gradient(135deg,#c9a227,#8a6a00);color:#fff}
+.tier .dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.7}
+.cust-head{display:flex;gap:14px;align-items:flex-start}
+.cust-av{width:54px;height:54px;border-radius:16px;background:var(--gold-grad);color:#EDE6DA;font-family:var(--font-display);font-size:26px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+.cust-av.vip{background:linear-gradient(135deg,#c9a227,#8a6a00)}
+.cust-name{font-family:var(--font-display);font-size:26px;font-weight:700;line-height:1.1}
+.cust-sub{font-size:12.5px;color:var(--muted);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.cust-quick{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.cust-quick a,.cust-quick button{text-decoration:none}
+.cust-nums{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:4px 0 14px}
+.cust-nums div{background:#faf9f5;border:1px solid var(--line-soft);border-radius:10px;padding:8px 10px}
+.cust-nums b{display:block;font-family:var(--font-display);font-size:20px}
+.cust-nums span{font-size:11px;color:var(--muted)}
+.pts-bar{height:10px;border-radius:6px;background:#ece8dd;overflow:hidden;margin:6px 0}
+.pts-bar div{height:100%;background:var(--gold-grad);border-radius:6px;transition:width .8s var(--ease)}
+.tier-row{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line-soft);font-size:13px;flex-wrap:wrap}
+.tier-row input{width:90px;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
+.tier-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.tier-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow-sm)}
+.tier-card h5{font-family:var(--font-display);font-size:20px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.tier-card .m{font-size:13px;padding:4px 0;border-bottom:1px solid var(--line-soft);display:flex;justify-content:space-between;cursor:pointer}
+.tier-card .m:last-child{border:none}
+.code-row .cc{font-family:ui-monospace,Menlo,monospace;font-weight:700;letter-spacing:.06em}
+.tag{display:inline-flex;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;background:#f1eee6;color:var(--ink-2);margin-right:4px}
+.led{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:13px}
+.led b.plus{color:#067306}.led b.minus{color:#a32c2c}
+@media (max-width:980px){.cust-nums{grid-template-columns:1fr 1fr}.cust-quick{margin-left:0;width:100%}}
+
+/* ---------- OBAVEŠTENJA ---------- */
+.bell-wrap{position:relative}
+.bell{position:relative}
+.bell.has{color:#1E2933;border-color:#1E2933}
+.bell-n{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:#a32c2c;color:#fff;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;animation:pop .4s var(--ease);box-shadow:0 0 0 2px var(--surface)}
+.bell-zz{position:absolute;top:-6px;right:-8px;font-size:9px;font-weight:800;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:0 4px}
+.bell-menu{display:none;position:absolute;right:0;top:44px;width:250px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-lg);padding:8px;z-index:70;animation:modalIn .22s var(--ease)}
+.bell-menu.open{display:block}
+.bell-menu button{display:block;width:100%;text-align:left;border:none;background:none;padding:9px 10px;border-radius:9px;font-size:13.5px;font-weight:500;color:var(--ink)}
+.bell-menu button:hover{background:#f1eee6}
+.bm-head{font-size:12px;color:var(--muted);padding:6px 10px 8px;border-bottom:1px solid var(--line-soft);margin-bottom:4px}
+.bm-sep{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;padding:10px 10px 4px}
+.bm-row{display:flex;gap:4px;padding:0 4px 4px}
+.bm-row button{flex:1;text-align:center;border:1px solid var(--line);font-size:12px;padding:6px 4px}
+.ntray{overflow:hidden;position:fixed;bottom:18px;right:18px;z-index:65;display:flex;flex-direction:column;gap:10px;width:360px;max-width:calc(100vw - 24px);pointer-events:none;max-height:calc(100vh - 100px);justify-content:flex-end}
+.ncard{cursor:pointer;pointer-events:auto;position:relative;background:rgba(255,253,248,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:16px;padding:12px 40px 12px 12px;box-shadow:0 18px 40px -16px rgba(23,28,33,.45);display:flex;gap:11px;align-items:flex-start;animation:nIn .5s var(--ease) both;transition:transform .3s var(--ease),opacity .3s}
+.ncard.out{transform:translateX(40px) scale(.96);opacity:0}
+.ncard.live{box-shadow:0 0 0 2px rgba(169,113,63,.5),0 18px 40px -16px rgba(23,28,33,.45)}
+@keyframes nIn{from{opacity:0;transform:translateX(30px) scale(.97)}to{opacity:1;transform:none}}
+.n-st{flex:none;width:44px;text-align:center}
+.n-av{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:19px;font-weight:700;margin:0 auto;transform:rotate(-4deg);box-shadow:0 3px 8px -3px rgba(0,0,0,.35)}
+.n-av.konstantin{background:#1E2933;color:#EDE6DA}.n-av.stefan{background:#e8cfb4;color:#7a4a1d}.n-av.marjan{background:#cfe0fb;color:#1c4c96}.n-av.system{background:#e6e1d4;color:#5d5a4d}
+.n-when{font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-top:4px;line-height:1.2}
+.n-body{flex:1;min-width:0;font-size:12.5px;line-height:1.35}
+.n-who{font-weight:700}
+.n-txt{margin-top:1px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.n-txt .ref{font-weight:700}
+.n-more{font-size:11.5px;color:var(--muted);margin-top:4px}
+.n-more span{display:inline-block;background:#f1eee6;border-radius:5px;padding:1px 6px;margin:2px 3px 0 0}
+.n-act{margin-top:6px;display:flex;gap:6px}
+.n-act button{border:none;background:none;padding:0;font-size:12px;font-weight:700;color:#2f4a3a;text-decoration:underline;text-underline-offset:2px}
+.n-x{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;border:1px solid rgba(255,255,255,.6);background:rgba(255,255,255,.35);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#d02b2b;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px -2px rgba(0,0,0,.25);transition:transform .15s,background .15s}
+.n-x:hover{transform:scale(1.1) rotate(90deg);background:rgba(255,255,255,.6)}
+.ncard.summary{cursor:default;background:rgba(23,28,33,.92);color:#EDE6DA;border-color:transparent;padding:10px 40px 10px 14px;font-size:13px}
+.ncard.summary .n-x{color:#ffb4b4}
+.ncard.summary b{font-weight:700}
+.nf-list .ncard{animation:fadeUp .3s var(--ease) both;margin-bottom:8px;padding-right:12px;backdrop-filter:none;background:var(--surface);box-shadow:var(--shadow-sm)}
+.nf-list .ncard.read{opacity:.62}
+.nf-list .ncard.mine{border-left:3px solid var(--sage)}
+.nf-day{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;margin:10px 0 6px}
+@media (max-width:980px){.ntray{bottom:12px;right:12px;left:12px;width:auto}.bell-menu{right:-40px}}
+
+/* ---------- BREND: logo, tamna traka, jača slova ---------- */
+.logo{width:100%;height:100%;display:block}
+.brand-mark{width:46px;height:46px;border-radius:12px;background:#1E2933;color:#EDE6DA;padding:5px;display:flex;align-items:center;justify-content:center;flex:none}
+.brand-name{font-family:var(--font-display);font-weight:700;font-size:26px;letter-spacing:.14em;line-height:1}
+.brand-sub{font-size:10.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--sage);margin-top:3px}
+.topbar{background:linear-gradient(90deg,#1E2933 0%,#22322a 55%,#1E2933 100%);border-bottom:1px solid #2f3f35;color:#EDE6DA}
+.topbar-inner{height:66px}
+.topbar .brand-home{text-decoration:none;color:#EDE6DA;display:flex;align-items:center;gap:11px;transition:transform .2s var(--ease)}
+.topbar .brand-home:hover{transform:translateY(-1px)}
+.topbar .brand-mark{width:40px;height:40px;border-radius:11px;background:#EDE6DA;color:#1E2933;padding:4px}
+.topbar .brand-name{font-size:22px;color:#EDE6DA;display:block}
+.topbar .brand-sub{color:#aab8a6;display:block}
+.topbar .proj-select select{background:rgba(237,230,218,.1);color:#EDE6DA;border-color:rgba(237,230,218,.25)}
+.topbar .cmd-btn{background:rgba(237,230,218,.1);border-color:rgba(237,230,218,.22);color:#c9cfc3}
+.topbar .cmd-btn:hover{background:rgba(237,230,218,.18);border-color:rgba(237,230,218,.4)}
+.topbar .cmd-btn kbd{background:rgba(0,0,0,.25);border-color:rgba(237,230,218,.2);color:#c9cfc3}
+.topbar .cmd-filter{background:#EDE6DA;color:#1E2933;border-color:#EDE6DA}
+.topbar .user-chip{background:rgba(237,230,218,.1);border-color:rgba(237,230,218,.25);color:#EDE6DA}
+.topbar .avatar{background:#EDE6DA;color:#1E2933}
+.topbar .icon-btn{background:rgba(237,230,218,.08);border-color:rgba(237,230,218,.22);color:#EDE6DA}
+.topbar .icon-btn:hover{background:rgba(237,230,218,.18)}
+.topbar .bell.has{background:#EDE6DA;color:#1E2933;border-color:#EDE6DA}
+.topbar .bell-n{box-shadow:0 0 0 2px #1E2933}
+.topbar .bell-zz{background:#1E2933;color:#c9cfc3;border-color:rgba(237,230,218,.3)}
+.topbar .bell-menu{color:var(--ink)}
+.topbar .bell-menu button{color:var(--ink)}
+.splash{z-index:300}
+.tabs button{font-weight:700;font-size:14.5px;color:#6b756c}
+.tabs button.active{color:#1E2933}
+.tabs button::after{height:3px;background:#1E2933}
+.page-title{font-size:38px;letter-spacing:0;position:relative;padding-bottom:6px}
+.page-title::after{content:"";position:absolute;left:0;bottom:0;width:38px;height:3px;border-radius:3px;background:var(--sage)}
+.page-sub{font-weight:500;color:#5f6a61}
+.stat-label{color:#3d473f;font-weight:700;font-size:12.5px;letter-spacing:.03em}
+.stat-dot{background:#1E2933;width:9px;height:9px}
+.stat-value{font-size:36px;color:#1E2933}
+.stat-note{color:#6b756c}
+.panel h4,.fu-title{font-size:16px;color:#1E2933}
+thead th{color:#3d473f;font-weight:800;background:#f3f1ea}
+.kb-col-title{color:#1E2933}
+.btn-gold{background:#1E2933}
+.stat.clickable{cursor:pointer}
+.stat.clickable::after{content:"↗";position:absolute;right:14px;top:12px;font-size:12px;color:var(--sage);opacity:0;transition:opacity .2s}
+.stat.clickable:hover::after{opacity:1}
+.stat.clickable:hover{border-color:var(--sage)}
+.spark{position:absolute;right:14px;bottom:12px;width:96px;height:30px;opacity:.9}
+.spark polyline{fill:none;stroke:#A9713F;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.spark .sp-fill{fill:rgba(169,113,63,.12)}
+.spark circle{fill:#1E2933}
+.delta{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:800;padding:1px 7px;border-radius:99px;margin-left:6px;vertical-align:1px}
+.delta.up{background:#e2f4e2;color:#067306}.delta.down{background:#fbe5e5;color:#a32c2c}.delta.flat{background:#eef1f4;color:#3f4a56}
+@media (max-width:980px){.topbar .brand-name{display:block;font-size:18px}.topbar .brand-sub{display:none}.brand-name{display:block}.spark{width:64px;height:22px}.page-title{font-size:30px}.stat-value{font-size:22px}}
+
+/* ---------- ANALITIKA (grafikoni) ---------- */
+.modal.wide.mt-modal{max-width:980px;padding:22px 26px}
+.mt-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+.mt-title{font-family:var(--font-display);font-size:30px;font-weight:700;color:#1E2933}
+.mt-tools{margin-bottom:12px}
+.mt-tools .seg button{white-space:nowrap}
+.mt-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.mt-sum div{background:#faf9f5;border:1px solid var(--line-soft);border-radius:12px;padding:10px 12px}
+.mt-sum b{display:block;font-family:var(--font-display);font-size:24px;color:#1E2933;line-height:1.1}
+.mt-sum span{font-size:11.5px;color:var(--muted)}
+.mt-chart{position:relative;height:300px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 6px 4px}
+.mt-chart svg{width:100%;height:100%;overflow:visible;display:block}
+.mt-chart .grid{stroke:#ece8dd;stroke-width:1}
+.mt-chart .ax{font-size:11px;fill:#6b756c;font-family:var(--font-ui);font-weight:600}
+.mt-chart .bar{fill:#2E5A42;transform-origin:bottom;transition:opacity .15s}
+.mt-chart .bar.prev{fill:#c3cdbd}
+.mt-chart .bar.dim{opacity:.45}
+.mt-chart .bar.sel{fill:#1E2933}
+.mt-chart .hit{fill:transparent;cursor:pointer}
+.mt-chart .line{fill:none;stroke:#2E5A42;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.mt-chart .line.prev{stroke:#c3cdbd}
+.mt-chart .area{fill:rgba(46,90,66,.10)}
+.mt-chart .dot{fill:#2E5A42;stroke:var(--surface);stroke-width:2}
+.mt-chart .dot.sel{fill:#1E2933;r:6}
+.mt-chart .xh{stroke:#1E2933;stroke-width:1;opacity:.5}
+.mt-chart .avg{stroke:#A9713F;stroke-width:1;stroke-dasharray:0;opacity:.9}
+.mt-chart .avgl{font-size:10.5px;fill:#5f6a61;font-family:var(--font-ui);font-weight:700}
+.mt-tip{position:absolute;pointer-events:none;background:#1E2933;color:#EDE6DA;border-radius:10px;padding:8px 11px;font-size:12.5px;box-shadow:var(--shadow-lg);transform:translate(-50%,0);white-space:nowrap;opacity:0;transition:opacity .12s,left .12s;z-index:2;line-height:1.35}
+.mt-tip b{display:block;font-size:17px;font-family:var(--font-display)}
+.mt-tip small{color:#aab8a6;display:block;font-size:11px}
+.mt-tip.on{opacity:1}
+.mt-legend{display:flex;gap:16px;font-size:12px;color:var(--ink-2);margin-top:8px;min-height:16px}
+.mt-legend span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:3px;background:#2E5A42;margin-right:6px;vertical-align:-2px}
+.mt-legend span.prev::before{background:#c3cdbd}
+.mt-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
+.mt-table{width:100%;font-size:13px}
+.mt-table td,.mt-table th{padding:6px 8px;border-bottom:1px solid var(--line-soft);text-align:left}
+.mt-table td.num,.mt-table th.num{text-align:right;font-variant-numeric:tabular-nums}
+@media (max-width:980px){.mt-sum{grid-template-columns:1fr 1fr}.mt-chart{height:240px}.mt-modal{padding:16px}}
+
+/* ---------- BELEŠKE NA PREGLEDU ---------- */
+.note-btn{font-size:15px;padding:11px 20px;box-shadow:0 8px 22px -8px rgba(23,28,33,.7);position:relative}
+.note-btn kbd{background:rgba(237,230,218,.18);border-color:transparent;color:#EDE6DA;margin-left:4px}
+.note-btn::before{content:"";position:absolute;inset:-4px;border-radius:14px;border:2px solid rgba(23,28,33,.25);animation:ring 2.4s ease-out infinite;pointer-events:none}
+@keyframes ring{0%{transform:scale(.96);opacity:.9}70%{transform:scale(1.08);opacity:0}100%{opacity:0}}
+.home-notes{margin:-6px 0 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.hn{background:#fbf7ea;border-radius:10px;padding:12px 14px 12px 16px;position:relative;box-shadow:0 1px 1px rgba(0,0,0,.05),0 8px 20px -12px rgba(60,50,20,.35);font-family:'Caveat',cursive;font-size:21px;line-height:1.25;color:#26312b;cursor:default;transition:transform .2s var(--ease);animation:fadeUp .4s var(--ease) both;background-image:linear-gradient(90deg,transparent 10px,#e8b4b0 10px,#e8b4b0 11.5px,transparent 11.5px)}
+.hn:hover{transform:rotate(-.6deg) translateY(-2px)}
+.hn.pinned{background-color:#f6efd2}
+.hn.done .txt{text-decoration:line-through;opacity:.5}
+.hn .meta{font-family:var(--font-ui);font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8a8574;margin-top:6px;display:flex;gap:8px;align-items:center}
+.hn .by{font-size:9.5px;padding:1px 6px;border-radius:4px}
+.hn .n-act{position:absolute;right:8px;top:6px;display:none;gap:2px;margin:0}
+.hn:hover .n-act{display:flex}
+.hn .n-act button{border:none;background:none;font-size:13px;color:#8a8574;padding:2px 4px;text-decoration:none}
+.hn.add{background:#fff;border:1.5px dashed var(--line);box-shadow:none;background-image:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-ui);font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer;min-height:64px}
+.hn.add:hover{border-color:var(--sage);color:#1E2933;transform:none}
+.hn.empty{grid-column:1/-1}
+.modal.qn{max-width:520px}
+.modal.qn textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-family:'Caveat',cursive;font-size:24px;line-height:1.3;min-height:120px;resize:vertical;background:#fbf7ea;color:#26312b}
+.modal.qn textarea:focus{outline:none;border-color:var(--sage);box-shadow:0 0 0 3px rgba(169,113,63,.2)}
+@media (max-width:980px){.home-notes{grid-template-columns:1fr}.note-btn{width:100%;justify-content:center}}
+
+/* ---------- MOBILNI MENI ---------- */
+.nav-btn{display:none;flex-direction:column;gap:4px;align-items:center;justify-content:center;width:40px;height:40px;flex:none}
+.nav-btn span{display:block;width:18px;height:2px;border-radius:2px;background:currentColor;transition:transform .3s var(--ease),opacity .2s}
+body.nav-open .nav-btn span:nth-child(1){transform:translateY(6px) rotate(45deg)}
+body.nav-open .nav-btn span:nth-child(2){opacity:0}
+body.nav-open .nav-btn span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+.nav-ov{position:fixed;inset:0;background:rgba(15,18,22,.5);backdrop-filter:blur(2px);z-index:90;opacity:0;pointer-events:none;transition:opacity .3s}
+.nav-drawer{position:fixed;top:0;left:0;bottom:0;width:min(86vw,340px);background:linear-gradient(180deg,#1E2933,#171f27);color:#EDE6DA;z-index:95;transform:translateX(-105%);transition:transform .35s cubic-bezier(.2,.9,.2,1);display:flex;flex-direction:column;box-shadow:20px 0 60px -20px rgba(0,0,0,.6)}
+body.nav-open .nav-drawer{transform:none}
+body.nav-open .nav-ov{opacity:1;pointer-events:auto}
+body.nav-open{overflow:hidden}
+.nd-head{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 10px}
+.nd-head .brand{margin:0;gap:10px}
+.nd-head .brand-mark{width:40px;height:40px;background:#EDE6DA;color:#1E2933;padding:4px}
+.nd-head .brand-name{font-size:21px;color:#EDE6DA}
+.nd-head .brand-sub{color:#aab8a6}
+.nd-x{width:36px;height:36px;border-radius:50%;border:1px solid rgba(237,230,218,.25);background:rgba(237,230,218,.08);color:#EDE6DA;font-size:15px}
+.nd-search{display:flex;align-items:center;gap:10px;margin:6px 16px 10px;padding:11px 14px;border-radius:12px;background:rgba(237,230,218,.1);border:1px solid rgba(237,230,218,.2);color:#aab8a6}
+.nd-search input{flex:1;border:none;background:none;outline:none;color:#EDE6DA;font-size:15px}
+.nd-search input::placeholder{color:#8f9c8c}
+.nd-list{flex:1;overflow-y:auto;padding:4px 10px 10px}
+.nd-item{display:flex;align-items:center;gap:12px;width:100%;border:none;background:none;color:#dfe3da;padding:11px 12px;border-radius:11px;font-size:15.5px;font-weight:600;text-align:left;animation:ndIn .35s var(--ease) both}
+@keyframes ndIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+.nd-item .ic{width:32px;height:32px;border-radius:9px;background:rgba(237,230,218,.08);display:flex;align-items:center;justify-content:center;font-size:14px;flex:none}
+.nd-item.active{background:#EDE6DA;color:#1E2933}
+.nd-item.active .ic{background:#1E2933;color:#EDE6DA}
+.nd-item:active{transform:scale(.98)}
+.nd-item .tab-badge{margin-left:auto}
+.nd-grp{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:#8f9c8c;font-weight:800;padding:12px 12px 4px}
+.nd-item mark{background:#EDE6DA;color:#1E2933;border-radius:3px;padding:0 1px}
+.nd-item small{display:block;font-size:11.5px;font-weight:500;color:#aab8a6}
+.nd-item.active small{color:#5f6a61}
+.nd-foot{border-top:1px solid rgba(237,230,218,.12);padding:12px 16px calc(14px + env(safe-area-inset-bottom))}
+.nd-proj select{width:100%;background:rgba(237,230,218,.1);color:#EDE6DA;border:1px solid rgba(237,230,218,.2);padding:10px 12px;border-radius:10px;margin-bottom:10px}
+.nd-user{display:flex;align-items:center;gap:10px}
+.nd-user .avatar{width:34px;height:34px;background:#EDE6DA;color:#1E2933;font-size:14px}
+.nd-user .mini-btn{margin-left:auto;background:rgba(237,230,218,.1);color:#EDE6DA;border-color:rgba(237,230,218,.25)}
+@media (max-width:980px){
+  .nav-btn{display:flex}
+  .topbar .proj-select,.topbar .logout-btn,.topbar .user-chip{display:none}
+  #tabs{display:none}
+  .topbar-inner{gap:8px;padding:0 12px;height:58px}
+  .topbar .brand-home{margin-right:auto}
+  .topbar .brand-mark{width:34px;height:34px}
+  .topbar .brand-name{font-size:18px}
+  .main{padding-top:18px}
+}
+@media (min-width:981px){.nav-drawer,.nav-ov{display:none}}
+
+/* ---------- STRANICA BELEŠKE ---------- */
+.np-composer{background:#fbf7ea;border-radius:16px;padding:14px 16px;margin-bottom:16px;box-shadow:0 1px 1px rgba(0,0,0,.04),0 12px 30px -18px rgba(60,50,20,.4);background-image:linear-gradient(90deg,transparent 12px,#e8b4b0 12px,#e8b4b0 13.5px,transparent 13.5px)}
+.np-composer textarea{width:100%;border:none;background:transparent;font-family:'Caveat',cursive;font-size:25px;line-height:1.3;min-height:70px;resize:vertical;outline:none;color:#26312b;padding:2px 4px 2px 10px}
+.np-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px;padding-left:10px}
+.np-people{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.np-person{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px 14px 8px 8px;cursor:pointer;transition:all .2s var(--ease)}
+.np-person:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+.np-person.active{border-color:#1E2933;box-shadow:0 0 0 1px #1E2933}
+.np-person .n-av{width:34px;height:34px;font-size:17px;margin:0}
+.np-person b{display:block;font-size:14px}
+.np-person span{font-size:11.5px;color:var(--muted)}
+.np-day{font-family:var(--font-display);font-size:20px;font-weight:700;color:#1E2933;margin:18px 0 10px;display:flex;align-items:baseline;gap:10px}
+.np-day span{font-family:var(--font-ui);font-size:12px;color:var(--muted);font-weight:500}
+.np-grid{columns:3 280px;column-gap:14px}
+.np-note{break-inside:avoid;margin-bottom:14px;background:#fbf7ea;border-radius:12px;padding:14px 16px 12px 22px;position:relative;box-shadow:0 1px 1px rgba(0,0,0,.05),0 10px 24px -14px rgba(60,50,20,.4);background-image:linear-gradient(90deg,transparent 12px,#e8b4b0 12px,#e8b4b0 13.5px,transparent 13.5px);animation:fadeUp .4s var(--ease) both;transition:transform .2s var(--ease)}
+.np-note:hover{transform:translateY(-2px) rotate(-.3deg)}
+.np-note.pinned{background-color:#f5ecc9}
+.np-note.pinned::before{content:"📌";position:absolute;top:-8px;right:14px;font-size:17px}
+.np-note.done{opacity:.6}
+.np-note.done .txt{text-decoration:line-through}
+.np-note .txt{font-family:'Caveat',cursive;font-size:23px;line-height:1.3;color:#26312b;white-space:pre-wrap;word-break:break-word}
+.np-note textarea{width:100%;border:1px solid #d9d2bc;border-radius:8px;background:#fffdf5;font-family:'Caveat',cursive;font-size:22px;line-height:1.3;padding:6px 8px;min-height:80px;resize:vertical}
+.np-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;font-size:11.5px;color:#8a8574}
+.np-meta .n-av{width:24px;height:24px;font-size:13px;border-radius:8px;margin:0}
+.np-meta b{color:#3d463f}
+.np-meta .place{background:rgba(23,28,33,.07);border-radius:5px;padding:1px 6px;font-weight:700;color:#3d463f}
+.np-acts{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
+.np-acts button{border:1px solid #e0d8c2;background:rgba(255,255,255,.6);border-radius:8px;padding:4px 9px;font-size:12px;font-weight:600;color:#5d5a4d}
+.np-acts button:hover{background:#fff;border-color:#c9c1a8}
+.np-acts button.on{background:#1E2933;color:#EDE6DA;border-color:#1E2933}
+.hn.all{background:#1E2933;background-image:none;color:#EDE6DA;font-family:var(--font-ui);font-size:13.5px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;min-height:64px}
+@media (max-width:980px){.np-people{flex-wrap:nowrap;overflow-x:auto;margin:0 -16px 14px;padding:2px 16px 4px;scrollbar-width:none}.np-people::-webkit-scrollbar{display:none}.np-person{flex:none;padding:6px 12px 6px 6px}.np-grid{columns:1}.np-row .btn-gold{width:100%;justify-content:center;margin-left:0}#npQ{width:100%!important}}
+
+/* ---------- PROMENE PO SEKCIJI ---------- */
+.chg-badge{display:inline-flex;min-width:19px;height:19px;padding:0 6px;border-radius:99px;background:#c62828;color:#fff;font-size:10.5px;font-weight:800;align-items:center;justify-content:center;margin-left:6px;box-shadow:0 0 0 2px var(--page);animation:pop .4s var(--ease)}
+.tab-badge{background:#b7791f}
+.tab-badge.live{background:var(--sage)}
+.nd-badges{margin-left:auto;display:flex;gap:4px;align-items:center}
+.nd-badges .chg-badge{box-shadow:none;margin:0}
+.nd-badges .tab-badge{margin:0}
+.nav-btn{position:relative}
+.nav-btn.has-chg::after{content:attr(data-n);position:absolute;top:-5px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:#c62828;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #1E2933;animation:pop .4s var(--ease)}
+.chg-box:empty{display:none}
+.chg-panel{position:relative;background:var(--surface);border:1px solid var(--line);border-left:4px solid #c62828;border-radius:16px;padding:14px 50px 12px 16px;margin:-4px 0 20px;box-shadow:0 14px 34px -20px rgba(23,28,33,.45);animation:chgIn .5s var(--ease) both;max-width:760px;transition:opacity .28s,transform .28s var(--ease)}
+.chg-panel.out{opacity:0;transform:translateY(-8px) scale(.98)}
+@keyframes chgIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+.chg-panel .n-x{top:10px;right:10px;background:rgba(23,28,33,.05);border-color:rgba(23,28,33,.1)}
+.chg-title{font-family:var(--font-display);font-size:20px;font-weight:700;color:#1E2933;line-height:1.1}
+.chg-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.chg-chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 8px}
+.chg-chips span{font-size:11.5px;font-weight:800;padding:3px 9px;border-radius:99px}
+.c-add{background:#e2f4e2;color:#067306}.c-edit{background:#e2e6dc;color:#1E2933}.c-del{background:#fbe5e5;color:#a32c2c}
+.chg-row{display:flex;align-items:flex-start;gap:9px;padding:7px 6px;border-radius:10px;font-size:13px;line-height:1.4;animation:fadeUp .35s var(--ease) both;cursor:default}
+.chg-row[data-nopen]{cursor:pointer}
+.chg-row[data-nopen]:hover{background:#f6f4ee}
+.chg-row .n-av{width:26px;height:26px;font-size:13px;border-radius:8px;margin:0;flex:none}
+.chg-k{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex:none;margin-top:3px}
+.k-add .chg-k{background:#e2f4e2;color:#067306}.k-edit .chg-k,.k-restore .chg-k{background:#e2e6dc;color:#1E2933}.k-del .chg-k{background:#fbe5e5;color:#a32c2c}
+.chg-txt{flex:1;min-width:0}
+.chg-txt .ref{font-weight:700}
+.chg-when{font-size:11px;color:var(--muted);white-space:nowrap;margin-top:3px}
+.chg-more{border:none;background:none;color:#2f4a3a;font-weight:700;font-size:12.5px;text-decoration:underline;text-underline-offset:2px;padding:6px 6px 0}
+@media (max-width:980px){.chg-panel{padding:12px 44px 10px 12px;margin-top:0}.chg-when{display:none}}
+/* ===== ASISTENT ===== */
+.bot-fab{position:fixed;right:18px;bottom:18px;z-index:68;width:54px;height:54px;border-radius:50%;border:0;cursor:pointer;display:none;align-items:center;justify-content:center;color:#EDE6DA;background:radial-gradient(circle at 30% 25%,#3a4d41,#1E2933 62%,#111820);box-shadow:0 12px 30px -8px rgba(17,22,28,.55),inset 0 0 0 1px rgba(237,230,218,.14);transition:transform .25s var(--ease),box-shadow .25s;animation:botIn .6s .4s var(--ease) both}
+body.bot-ready .bot-fab{display:flex}
+.bot-fab:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 16px 36px -8px rgba(17,22,28,.6),inset 0 0 0 1px rgba(237,230,218,.25)}
+.bot-fab::before{content:"";position:absolute;inset:-5px;border-radius:50%;border:1.5px solid rgba(169,113,63,.55);animation:botRing 2.8s ease-out 1.2s 2}
+.bot-fab svg{transition:transform .35s var(--ease),opacity .2s}
+.bot-fab .ic-x{position:absolute;opacity:0;transform:rotate(-90deg) scale(.6)}
+body.bot-open .bot-fab .ic-chat{opacity:0;transform:rotate(90deg) scale(.6)}
+body.bot-open .bot-fab .ic-x{opacity:1;transform:none}
+body.nav-open .bot-fab,body:has(.drawer.open) .bot-fab{display:none}
+@keyframes botIn{from{opacity:0;transform:translateY(20px) scale(.6)}to{opacity:1;transform:none}}
+@keyframes botRing{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(1.45)}}
+.ntray{bottom:84px;max-height:calc(100vh - 170px)}
+.bot-panel{position:fixed;right:18px;bottom:84px;z-index:70;width:392px;height:min(600px,calc(100vh - 110px));background:var(--surface);border-radius:20px;box-shadow:0 30px 80px -20px rgba(17,22,28,.45),0 0 0 1px rgba(23,28,33,.08);display:flex;flex-direction:column;overflow:hidden;opacity:0;transform:translateY(16px) scale(.97);transform-origin:bottom right;pointer-events:none;transition:opacity .22s var(--ease),transform .3s var(--ease)}
+body.bot-open .bot-panel{opacity:1;transform:none;pointer-events:auto}
+body.bot-open .ntray{opacity:0;pointer-events:none}
+.bot-head{display:flex;align-items:center;gap:11px;padding:14px 14px 13px 16px;background:linear-gradient(135deg,#2b3b49,#1E2933 60%,#141c17);color:#EDE6DA}
+.bot-head .bt-av{width:34px;height:34px;font-size:19px}
+.bot-head b{font-family:var(--font-display);font-size:21px;font-weight:700;letter-spacing:.02em;display:block;line-height:1}
+.bot-head small{font-size:11.5px;color:#aab8a6;display:flex;align-items:center;gap:6px;margin-top:3px}
+.bot-head small::before{content:"";width:7px;height:7px;border-radius:50%;background:#8fbf7a;box-shadow:0 0 0 3px rgba(143,191,122,.2)}
+.bot-head .bh-btn{margin-left:auto;background:rgba(237,230,218,.08);border:0;color:#EDE6DA;width:32px;height:32px;border-radius:10px;cursor:pointer;font-size:15px;transition:background .2s}
+.bot-head .bh-btn+.bh-btn{margin-left:6px}
+.bot-head .bh-btn:hover{background:rgba(237,230,218,.18)}
+.bot-msgs{flex:1;overflow-y:auto;padding:16px 14px 8px;display:flex;flex-direction:column;gap:10px;background:linear-gradient(180deg,#f7f4ec,var(--surface) 140px);overscroll-behavior:contain}
+.bt-msg{display:flex;gap:8px;align-items:flex-end;max-width:100%}
+.bt-msg[data-last]{animation:fadeUp .35s var(--ease) both}
+.bt-msg.me{justify-content:flex-end}
+.bt-av{flex:none;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 30% 25%,#3a4d41,#1E2933);color:#EDE6DA;font-family:var(--font-display);font-weight:700;font-size:15px}
+.bt-bub{background:#fff;border:1px solid var(--line);border-radius:16px 16px 16px 5px;padding:10px 12px;font-size:13.5px;line-height:1.5;color:var(--ink);min-width:0;max-width:calc(100% - 34px);overflow-wrap:anywhere;box-shadow:var(--shadow-sm)}
+.bt-msg.me .bt-bub{background:#1E2933;color:#EDE6DA;border-color:#1E2933;border-radius:16px 16px 5px 16px;max-width:82%}
+.bt-bub a{color:var(--gold-text);font-weight:600}
+.bt-bub kbd{font-family:var(--font-ui);font-size:11px;background:var(--gold-wash);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px}
+.bt-bub i{color:var(--ink-2)}
+.bt-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.bt-btn{border:1px solid #cfd6c8;background:#f1f3ec;color:#1E2933;font:600 12.5px var(--font-ui);padding:6px 11px;border-radius:99px;cursor:pointer;transition:background .15s,transform .15s,border-color .15s}
+.bt-btn:hover{background:#1E2933;color:#EDE6DA;border-color:#1E2933;transform:translateY(-1px)}
+.bt-list{display:flex;flex-direction:column;gap:5px}
+.bt-item{display:flex;align-items:center;gap:9px;width:100%;text-align:left;border:1px solid var(--line-soft);background:#faf8f2;border-radius:11px;padding:7px 9px;cursor:pointer;font-family:var(--font-ui);color:var(--ink);transition:border-color .15s,background .15s,transform .15s}
+.bt-item:hover{border-color:var(--sage);background:#fff;transform:translateX(2px)}
+.bt-item .bi-ic{flex:none;min-width:24px;height:24px;border-radius:8px;background:#e2e6dc;color:#1E2933;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.bt-item .bi-ic .n-av{width:24px;height:24px;font-size:11px}
+.bt-item .bi-t{min-width:0;display:flex;flex-direction:column}
+.bt-item b{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bt-item small{font-size:11.5px;color:var(--muted);line-height:1.35}
+.bt-item small .ref{font-weight:600;color:var(--ink-2)}
+.bt-cap{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--sage)}
+.bt-big{font-family:var(--font-display);font-size:30px;font-weight:700;line-height:1.1;color:#1E2933}
+.bt-kvs{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}
+.bt-kv{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:2px 0}
+.bt-kv span{color:var(--ink-2)}
+.bt-d{font-size:11px;font-weight:700;margin-left:4px}
+.bt-d.up{color:#2e7d32}.bt-d.down{color:#c62828}
+.bt-note{font-size:11.5px;color:var(--muted);margin-top:7px;line-height:1.45}
+.bt-red{color:#c62828;font-weight:600}.bt-amber{color:#b7791f;font-weight:600}
+.bt-quote{margin-top:7px;padding:6px 10px;border-left:3px solid var(--sage);background:#fbf7ea;border-radius:0 8px 8px 0;font-family:'Caveat',cursive;font-size:19px;line-height:1.2}
+.bt-code{display:inline-block;margin-top:4px;font-size:11.5px;background:var(--gold-wash);padding:2px 7px;border-radius:6px;word-break:break-all}
+.bt-ul{margin:4px 0 0 16px;display:flex;flex-direction:column;gap:4px}
+.bt-typing{display:flex;gap:4px;padding:12px 14px}
+.bt-typing i{width:6px;height:6px;border-radius:50%;background:var(--sage);animation:btDot 1s infinite}
+.bt-typing i:nth-child(2){animation-delay:.15s}.bt-typing i:nth-child(3){animation-delay:.3s}
+@keyframes btDot{0%,60%,100%{opacity:.3;transform:none}30%{opacity:1;transform:translateY(-3px)}}
+.bot-chips{display:flex;gap:6px;padding:8px 12px 2px;overflow-x:auto;scrollbar-width:none}
+.bot-chips::-webkit-scrollbar{display:none}
+.bot-chips button{flex:none;border:1px solid var(--line);background:#fff;color:var(--ink-2);font:500 12px var(--font-ui);padding:5px 10px;border-radius:99px;cursor:pointer;transition:all .15s}
+.bot-chips button:hover{border-color:var(--sage);color:#1E2933;background:#f1f3ec}
+.bot-form{display:flex;gap:8px;padding:10px 12px 12px;border-top:1px solid var(--line-soft);background:var(--surface)}
+.bot-form input{flex:1;min-width:0;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;font:14px var(--font-ui);background:#fff;color:var(--ink);transition:border-color .2s,box-shadow .2s}
+.bot-form input:focus{outline:none;border-color:var(--sage);box-shadow:0 0 0 3px rgba(169,113,63,.2)}
+.bot-form button{flex:none;width:42px;border:0;border-radius:12px;background:#1E2933;color:#EDE6DA;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s}
+.bot-form button:hover{transform:scale(1.05)}
+@media (max-width:980px){
+  .bot-fab{right:14px;bottom:14px;width:52px;height:52px}
+  .ntray{bottom:76px}
+  .bot-panel{right:0;left:0;bottom:0;width:auto;height:86vh;height:86dvh;border-radius:22px 22px 0 0;transform:translateY(100%);transition:transform .35s cubic-bezier(.2,.9,.2,1),opacity .2s}
+  body.bot-open .bot-fab{display:none}
+  .bot-form input{font-size:16px}
+  .bot-form{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+}
+.bot-ov{display:none}
+@media (max-width:980px){.bot-ov{display:block;position:fixed;inset:0;z-index:69;background:rgba(15,18,22,.45);opacity:0;pointer-events:none;transition:opacity .3s}body.bot-open .bot-ov{opacity:1;pointer-events:auto}}
+.bt-link{color:#2f4a3a;font-weight:600;text-decoration:underline;text-decoration-color:rgba(169,113,63,.6);text-underline-offset:2px;cursor:pointer}
+.bt-link:hover{color:#1E2933;text-decoration-color:#1E2933}
+.bt-p{margin:0}.bt-p+.bt-p{margin-top:6px}.bt-sp{height:6px}
+.bt-h{font-weight:700;margin:6px 0 2px;color:#1E2933}
+.bt-bub code{font-size:12px;background:var(--gold-wash);padding:1px 5px;border-radius:5px}
+.bt-bub ol.bt-ul{list-style:decimal}
+.bt-bub.streaming>div:last-child::after{content:"";display:inline-block;width:7px;height:14px;margin-left:3px;vertical-align:-2px;background:var(--sage);border-radius:2px;animation:btBlink .9s steps(2) infinite}
+.bt-bub.streaming>.bt-typing::after{display:none}
+@keyframes btBlink{50%{opacity:0}}
+.bot-panel.ai-on .bot-head small::before{background:#b9d99f;box-shadow:0 0 0 3px rgba(185,217,159,.25),0 0 10px rgba(185,217,159,.6)}
+.bot-panel.ai-on .bot-head .bt-av{box-shadow:0 0 0 2px rgba(185,217,159,.35)}
+
+/* ---------- MENI NA RAČUNARU (tri crtice, otvara se sa desne strane) ---------- */
+@media (min-width:981px){
+  .nav-drawer,.nav-ov{display:flex}
+  .nav-ov{display:block}
+  .nav-btn{display:flex;order:99;margin-left:-6px;border-radius:10px}
+  .nav-btn:hover{background:rgba(237,230,218,.12)}
+  .nav-drawer{left:auto;right:0;width:min(92vw,360px);transform:translateX(105%);box-shadow:-20px 0 60px -20px rgba(0,0,0,.6)}
+  body.nav-open .nav-drawer{transform:none}
+  .nav-drawer .nd-head{padding-top:18px}
+}
+/* ===== NABAVKA I UVOZ ===== */
+#copyFormBtn,#openFormBtn,#newCodeBtn,#custViewSeg [data-view="club"],#custViewSeg [data-view="codes"]{display:none}
+.imp-card{margin-bottom:14px;border-left:4px solid var(--line);animation:fadeUp .4s var(--ease) both}
+.imp-card.transit,.imp-card.customs{border-left-color:var(--sage)}
+.imp-card.arrived{border-left-color:#2e7d32}
+.imp-card.cancelled{opacity:.6}
+.imp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+.imp-title{font-family:var(--font-display);font-size:21px;font-weight:700;color:var(--ink)}
+.pill.imp-planned{background:#eee;color:#555}.pill.imp-ordered{background:var(--gold-wash);color:var(--gold-text)}
+.pill.imp-paid{background:#e6eefb;color:#1c5cab}.pill.imp-transit{background:#efe0d2;color:#8a5a2b}
+.pill.imp-customs{background:#fdf0d5;color:#8a6414}.pill.imp-arrived{background:#e3f0e4;color:#2e7d32}.pill.imp-cancelled{background:#f6e2e2;color:#a33}
+.imp-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.imp-chips span{font-size:11.5px;font-weight:600;background:var(--gold-wash);color:var(--ink-2);padding:3px 9px;border-radius:99px}
+.imp-chips .imp-total{background:var(--gold);color:var(--bone)}
+.imp-chips .imp-unit{background:#e6ddd1;color:#8a5a2b}
+.imp-chips .imp-late{background:#fbe3e3;color:#c62828}
+table.imp-items{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px}
+table.imp-items th{text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--line-soft)}
+table.imp-items td{padding:5px 8px;border-bottom:1px solid var(--line-soft)}
+table.imp-items .num,table.imp-items th.num{text-align:right}
+.imp-note{font-size:13px;color:var(--ink-2);background:var(--gold-wash);padding:8px 11px;border-radius:10px;margin-bottom:8px}
+.imp-acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.imp-acts .btn-gold.mini{padding:6px 12px;font-size:12.5px}
+.imp-done{font-size:12.5px;font-weight:600;color:#2e7d32}
+.imp-row{grid-template-columns:2fr 1fr 70px 1fr 30px}
+</style>
+</head>
+<body>
+<div class="splash hide" id="splash">
+  <svg viewBox="0 0 120 120" aria-hidden="true">
+    <path class="d" d="M34 18 L34 66 a26 26 0 0 0 52 0 L86 18" />
+    <path class="d d2" d="M50 18 L50 66 a10 10 0 0 0 20 0 L70 18" />
+    <path class="br" d="M-2 52 L-10 62 L-2 72"/><path class="br" d="M122 52 L130 62 L122 72"/>
+  </svg>
+  <div class="word">POTKOVICE</div>
+  <div class="line"></div>
+  <div class="hello" id="splashHello"></div>
+</div>
+</div>
+<div class="login-page" id="loginPage">
+  <div class="login-card">
+    <div class="brand">
+      <div class="brand-mark"><svg class="logo" viewBox="0 0 120 120" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round"><path d="M34 22 L34 64 a26 26 0 0 0 52 0 L86 22" stroke-width="9"/><circle cx="40" cy="34" r="3.5" fill="currentColor" stroke="none"/><circle cx="80" cy="34" r="3.5" fill="currentColor" stroke="none"/><circle cx="37" cy="52" r="3.5" fill="currentColor" stroke="none"/><circle cx="83" cy="52" r="3.5" fill="currentColor" stroke="none"/></g></svg></div>
+      <div><div class="brand-name">POTKOVICE</div><div class="brand-sub">CRM</div></div>
+    </div>
+    <div class="login-title">Dobrodošao nazad</div>
+    <div class="login-sub">Prijavi se da nastaviš.</div>
+    <div class="login-err" id="loginErr">Pogrešno korisničko ime ili šifra.</div>
+    <form id="loginForm">
+      <div class="field"><label>Korisničko ime</label><input type="text" id="loginUser" placeholder="npr. konstantin" autocomplete="username" autocapitalize="none" required></div>
+      <div class="field"><label>Šifra</label><input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" required></div>
+      <button class="btn-primary" type="submit">Prijavi se</button>
+    </form>
+  </div>
+</div>
+
+<div class="app" id="app">
+  <div class="topbar"><div class="topbar-inner">
+    <button class="icon-btn nav-btn" id="navBtn" type="button" aria-label="Meni"><span></span><span></span><span></span></button>
+    <a class="brand brand-home" id="brandHome" href="#" title="Početna"><div class="brand-mark"><svg class="logo" viewBox="0 0 120 120" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round"><path d="M34 22 L34 64 a26 26 0 0 0 52 0 L86 22" stroke-width="9"/><circle cx="40" cy="34" r="3.5" fill="currentColor" stroke="none"/><circle cx="80" cy="34" r="3.5" fill="currentColor" stroke="none"/><circle cx="37" cy="52" r="3.5" fill="currentColor" stroke="none"/><circle cx="83" cy="52" r="3.5" fill="currentColor" stroke="none"/></g></svg></div><div class="brand-text"><div class="brand-name">POTKOVICE</div><div class="brand-sub">CRM</div></div></a>
+    <div class="proj-select"><select id="projSel">
+      <option value="potkovice">POTKOVICE</option>
+    </select></div>
+    <button class="cmd-btn" id="cmdBtn" type="button">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <span id="cmdBtnText">Pretraži ili skoči na sekciju…</span><kbd id="cmdKbd">⌘K</kbd>
+    </button>
+    <button class="cmd-filter" id="cmdFilter" type="button" style="display:none"></button>
+    <button class="icon-btn cmd-mobile" id="cmdBtnM" type="button" title="Pretraga"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+    <div class="top-right">
+      <div class="bell-wrap">
+        <button class="icon-btn bell" id="bellBtn" title="Obaveštenja"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="bell-n" id="bellN" style="display:none"></span><span class="bell-zz" id="bellZz" style="display:none">zz</span></button>
+        <div class="bell-menu" id="bellMenu">
+          <div class="bm-head" id="bmHead"></div>
+          <button data-bm="history">Istorija svih promena</button>
+          <button data-bm="show">Prikaži obaveštenja ponovo</button>
+          <button data-bm="clear">Skloni sve trenutne</button>
+          <div class="bm-sep">Utišaj</div>
+          <div class="bm-row"><button data-bm="snooze:1">1 h</button><button data-bm="snooze:3">3 h</button><button data-bm="snooze:tomorrow">do sutra 9h</button><button data-bm="snooze:0">uključi</button></div>
+        </div>
+      </div>
+      <div class="user-chip"><div class="avatar" id="avatar">K</div><div class="user-name" id="userName"></div></div>
+      <button class="icon-btn logout-btn" id="logoutBtn" title="Odjavi se"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+    </div>
+  </div></div>
+
+  <div class="main">
+    <div id="soonView" class="soon" style="display:none"><b>Uskoro</b>Ovaj projekat još nema modul.</div>
+    <div id="mod">
+      <div class="tabs" id="tabs">
+        <button data-tab="overview" class="active">Pregled</button>
+        <button data-tab="notes">Beleške<span class="tab-badge live" id="notesBadge" style="display:none"></span></button>
+        <button data-tab="orders">Porudžbine</button>
+        <button data-tab="customers">Kupci</button>
+        <button data-tab="products">Potkovice<span class="tab-badge" id="alertBadge" style="display:none"></span></button>
+        <button data-tab="imports">Nabavka i uvoz</button>
+        <button data-tab="returns">Reklamacije<span class="tab-badge" id="retBadge" style="display:none"></span></button>
+        <button data-tab="posts">Objave</button>
+        <button data-tab="site">Sajt</button>
+        <button data-tab="ads">Reklame</button>
+        <button data-tab="history">Istorija</button>
+      </div>
+
+      <!-- PREGLED -->
+      <div class="view active" id="v-overview">
+        <div class="page-head">
+          <div><div class="page-title">Pregled</div><div class="page-sub">Prihod, profit i stanje robe.</div></div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="btn-gold note-btn" id="quickNoteBtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Beleška <kbd>B</kbd></button>
+          <div class="seg" id="periodSeg">
+            <button data-p="1">Danas</button><button data-p="7">7 dana</button><button data-p="30" class="active">30 dana</button><button data-p="0">Sve</button><button data-p="custom">Od-do</button>
+          </div>
+          <div class="range" id="rangeWrap" style="display:none"><input type="date" id="rangeFrom"><span>do</span><input type="date" id="rangeTo"></div>
+          </div>
+        </div>
+        <div class="stats" id="kpi1"></div>
+        <div class="stats" id="kpi2"></div>
+        <div class="two-col">
+          <div class="panel"><h4>Za obradu <span class="fu-count" id="todoCount">0</span></h4><div id="todoList"></div></div>
+          <div class="panel"><h4>Malo na stanju <span class="fu-count" id="lowCount">0</span></h4><div id="lowList"></div></div>
+          <div class="panel"><h4>Najprodavanije</h4><div id="topList"></div></div>
+          <div class="panel"><h4>Kod kurira</h4><div id="shipList"></div></div>
+        </div>
+      </div>
+
+      <!-- BELEŠKE -->
+      <div class="view" id="v-notes">
+        <div class="page-head">
+          <div><div class="page-title">Beleške</div><div class="page-sub">Sve beleške celog tima na jednom mestu. Svi vide sve.</div></div>
+        </div>
+        <div class="np-composer">
+          <textarea id="np_body" placeholder="Nova beleška… (Ctrl + Enter za čuvanje)"></textarea>
+          <div class="np-row">
+            <div class="writer" id="npWriter" style="margin:0"><span>Piše:</span><button data-npw="konstantin">Konstantin</button><button data-npw="stefan">Stefan</button><button data-npw="marjan">Marjan</button></div>
+            <div class="select-wrap"><select id="np_area"><option value="general">Opšta</option><option value="story">Brand story</option></select></div>
+            <label class="threshold"><input type="checkbox" id="np_pin" style="width:auto"> zakači</label>
+            <button class="btn-gold" id="npSave" style="margin-left:auto">Sačuvaj belešku</button>
+          </div>
+        </div>
+        <div class="np-people" id="npPeople"></div>
+        <div class="toolbar">
+          <div class="seg" id="npStatus"><button data-s="open" class="active">Otvorene</button><button data-s="done">Završene</button><button data-s="all">Sve</button></div>
+          <div class="select-wrap"><select id="npArea"><option value="all">Sva mesta</option><option value="general">Opšte</option><option value="story">Brand story</option><option value="promo">Promocije</option></select></div>
+          <div class="select-wrap"><select id="npSort"><option value="new">Najnovije prvo</option><option value="old">Najstarije prvo</option></select></div>
+          <input class="inline-input" id="npQ" placeholder="traži u beleškama…" style="width:200px">
+          <div class="count" id="npCount"></div>
+        </div>
+        <div id="npList"></div>
+      </div>
+
+      <!-- PORUDŽBINE -->
+      <div class="view" id="v-orders">
+        <div class="page-head">
+          <div><div class="page-title">Porudžbine</div><div class="page-sub">Shopify i Instagram porudžbine na jednom mestu.</div></div>
+          <button class="btn-gold" id="newOrderBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Nova porudžbina</button>
+        </div>
+        <div class="toolbar">
+          <div class="seg" id="orderViewSeg"><button data-view="table" class="active">Tabela</button><button data-view="pipeline">Pipeline</button></div>
+          <div class="seg" id="chSeg"><button data-ch="all" class="active">Sve</button><button data-ch="instagram">Instagram</button><button data-ch="shopify">Shopify</button></div>
+          <div class="select-wrap"><select id="orderStatusFilter"><option value="all">Svi statusi</option></select></div>
+          <div class="count" id="orderCount"></div>
+        </div>
+        <div class="table-card" id="orderTableCard"><table>
+          <thead><tr><th>Broj</th><th>Kupac</th><th>Artikli</th><th>Kanal</th><th>Status</th><th>Iznos</th><th>Profit</th><th>Datum</th></tr></thead>
+          <tbody id="orderTbody"></tbody>
+        </table></div>
+        <div class="kanban" id="kanban"></div>
+      </div>
+
+      <!-- KUPCI -->
+      <div class="view" id="v-customers">
+        <div class="page-head">
+          <div><div class="page-title">Kupci</div><div class="page-sub">Ko kupuje, koliko puta, koliko troši. Loyalty klub i popusti.</div></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-ghost" id="newCodeBtn">+ Kod za popust</button>
+            <button class="btn-gold" id="newCustBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Novi kupac</button>
+          </div>
+        </div>
+        <div class="stats" id="kpiCust"></div>
+        <div class="toolbar">
+          <div class="seg" id="custViewSeg"><button data-view="list" class="active">Kupci</button><button data-view="club">Loyalty klub</button><button data-view="codes">Popusti</button></div>
+          <div class="seg" id="custSeg"><button data-s="all" class="active">Svi</button><button data-s="new">Novi</button><button data-s="repeat">Stalni</button><button data-s="club">Klub</button><button data-s="vip">VIP</button><button data-s="idle">Neaktivni 60+ d</button><button data-s="reward">Za nagradu</button></div>
+          <div class="select-wrap"><select id="custSort"><option value="spend">Najviše potrošili</option><option value="recent">Poslednja kupovina</option><option value="orders">Najviše porudžbina</option><option value="name">Po imenu</option></select></div>
+          <div class="count" id="custCount"></div>
+        </div>
+        <div class="table-card" id="custList"><table>
+          <thead><tr><th>Kupac</th><th>Kontakt</th><th>Klub</th><th>Porudžbine</th><th>Potrošeno</th><th>Poeni</th><th>Poslednja</th></tr></thead>
+          <tbody id="custTbody"></tbody></table></div>
+        <div id="clubView" style="display:none"></div>
+        <div id="codesView" style="display:none"></div>
+      </div>
+
+      <!-- GARDEROBA -->
+      <div class="view" id="v-products">
+        <div class="page-head">
+          <div><div class="page-title">Potkovice</div><div class="page-sub">Asortiman, zalihe po veličinama, nabavne i prodajne cene, marže.</div></div>
+          <button class="btn-gold" id="newProductBtn" title="Nova potkovica"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Novi komad</button>
+        </div>
+        <div class="stats" id="kpiStock"></div>
+        <div class="toolbar"><div class="fu-title">Upozorenja</div><span class="fu-count" id="alertCount">0</span>
+          <label class="threshold" style="margin-left:auto">Upozori kad ostane ≤ <input type="number" min="0" id="lowInput"> kom</label></div>
+        <div class="alerts" id="alerts"></div>
+        <div class="table-card"><table>
+          <thead><tr><th>Model</th><th>Veličine / stanje</th><th>Nabavna</th><th>Prodajna</th><th>Marža</th><th>Prodato</th><th>Status</th></tr></thead>
+          <tbody id="prodTbody"></tbody>
+        </table></div>
+        <div class="panel feed" style="margin-top:18px"><h4>Šta se dešava sa robom</h4><div id="feed"></div></div>
+      </div>
+
+
+      <!-- NABAVKA I UVOZ -->
+      <div class="view" id="v-imports">
+        <div class="page-head">
+          <div><div class="page-title">Nabavka i uvoz</div><div class="page-sub">Ture iz inostranstva: šta je naručeno, gde je i koliko stvarno košta po komadu.</div></div>
+          <button class="btn-gold" id="newImpBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Nova tura</button>
+        </div>
+        <div class="stats" id="kpiImp"></div>
+        <div class="alerts" id="impAlerts"></div>
+        <div class="toolbar">
+          <div class="seg" id="impSeg"><button data-f="all" class="active">Sve</button><button data-f="open">U toku</button><button data-f="transit">Transport</button><button data-f="customs">Carina</button><button data-f="arrived">Stiglo</button></div>
+          <div class="count" id="impCount"></div>
+        </div>
+        <div id="impList"></div>
+      </div>
+      <!-- POVRATI -->
+      <div class="view" id="v-returns">
+        <div class="page-head">
+          <div><div class="page-title">Reklamacije</div><div class="page-sub">Reklamacije, povrati, zamene i utisci kupaca. Šta da popravimo.</div></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-ghost" id="copyFormBtn">⧉ Kopiraj link forme</button>
+            <a class="btn-ghost" id="openFormBtn" target="_blank" rel="noopener" style="text-decoration:none">Otvori formu ↗</a>
+            <button class="btn-gold" id="newRetBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Ručni unos</button>
+          </div>
+        </div>
+        <div class="stats" id="kpiRet"></div>
+        <div class="alerts" id="retAlerts"></div>
+        <div class="toolbar">
+          <div class="seg" id="retViewSeg"><button data-view="board" class="active">Tabla</button><button data-view="list">Lista</button><button data-view="insights">Šta da popravimo</button></div>
+          <div class="seg" id="retTypeSeg"><button data-t="all" class="active">Sve</button><button data-t="return">Povrat</button><button data-t="exchange">Zamena</button><button data-t="complaint">Reklamacija</button><button data-t="feedback">Utisci</button></div>
+          <div class="count" id="retCount"></div>
+        </div>
+        <div class="kanban" id="retBoard"></div>
+        <div class="table-card" id="retList" style="display:none"><table>
+          <thead><tr><th>Broj</th><th>Kupac</th><th>Tip</th><th>Komad</th><th>Razlog</th><th>Status</th><th>Rok</th><th>Stiglo</th></tr></thead>
+          <tbody id="retTbody"></tbody></table></div>
+        <div id="retInsights" style="display:none"></div>
+      </div>
+
+      <!-- PROMOCIJE -->
+      <div class="view" id="v-promos">
+        <div class="page-head">
+          <div><div class="page-title">Promocije</div><div class="page-sub">Istorija svake akcije: od kad do kad, šta je donela, ko je šta zabeležio.</div></div>
+          <button class="btn-gold" id="newPromoBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Nova promocija</button>
+        </div>
+        <div class="stats" id="kpiPromo"></div>
+        <div class="panel" style="margin-bottom:18px;padding:16px 18px"><h4>Vremenska linija promocija</h4><div class="gantt" id="promoGantt"></div></div>
+        <div class="toolbar">
+          <div class="seg" id="promoSeg"><button data-f="all" class="active">Sve</button><button data-f="active">Aktivne</button><button data-f="planned">Planirane</button><button data-f="ended">Završene</button></div>
+          <div class="count" id="promoCount"></div>
+        </div>
+        <div class="promo-list" id="promoList"></div>
+      </div>
+
+      <!-- ISTORIJA -->
+      <div class="view" id="v-history">
+        <div class="page-head">
+          <div><div class="page-title">Istorija</div><div class="page-sub">Sve što se desilo, zauvek. Kad je šta krenulo, ko je šta uradio, kako je bilo tog dana.</div></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-ghost" id="archiveBtn">Arhiva obrisanog</button>
+            <button class="btn-gold" id="newMilestoneBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Zabeleži događaj</button>
+          </div>
+        </div>
+        <div class="stats" id="kpiHist"></div>
+        <div class="panel" style="margin-bottom:18px;padding:16px 18px"><h4>Prihod po danu <span class="page-sub" id="histChartSub"></span></h4><div class="chart" id="histChart"></div></div>
+        <div class="toolbar">
+          <div class="seg" id="histSeg"><button data-f="all" class="active">Sve</button><button data-f="milestone">Prekretnice</button><button data-f="order">Porudžbine</button><button data-f="stock">Garderoba</button><button data-f="post">Objave</button><button data-f="ret">Povrati</button><button data-f="promo">Promocije</button><button data-f="site">Sajt i pakovanje</button></div>
+          <div class="select-wrap"><select id="histMonth"></select></div>
+          <div class="count" id="histCount"></div>
+        </div>
+        <div class="tl" id="timeline"></div>
+        <div id="archiveWrap" class="panel" style="display:none;margin-top:18px"><h4>Arhiva obrisanog</h4><div id="archiveList"></div></div>
+      </div>
+
+      <!-- OBJAVE -->
+      <div class="view" id="v-posts">
+        <div class="page-head">
+          <div><div class="page-title">Objave</div><div class="page-sub">Ideje, koncepti, datumi objave i snimci na Drive-u.</div></div>
+          <button class="btn-gold" id="newPostBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Nova ideja</button>
+        </div>
+        <div class="week-strip" id="weekStrip"></div>
+        <div class="toolbar">
+          <div class="seg" id="postViewSeg"><button data-view="board" class="active">Tabla</button><button data-view="calendar">Kalendar</button><button data-view="list">Lista</button></div>
+          <div class="select-wrap"><select id="postFmtFilter"><option value="all">Svi formati</option><option value="reel">Reel</option><option value="carousel">Carousel</option><option value="story">Story</option><option value="post">Post</option><option value="tiktok">TikTok</option></select></div>
+          <div class="count" id="postCount"></div>
+        </div>
+        <div class="kanban" id="postBoard"></div>
+        <div class="cal" id="postCal" style="display:none"></div>
+        <div class="table-card" id="postList" style="display:none"><table>
+          <thead><tr><th>Datum objave</th><th>Ideja</th><th>Format</th><th>Status</th><th>Zadužen</th><th>Snimak</th></tr></thead>
+          <tbody id="postTbody"></tbody></table></div>
+      </div>
+
+      <!-- PAKOVANJE -->
+      <div class="view" id="v-packaging">
+        <div class="page-head">
+          <div><div class="page-title">Pakovanje</div><div class="page-sub">Ambalaža na stanju, trošak po paketu i predlozi za dizajn i promene.</div></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-ghost" id="newPackBtn">+ Materijal</button>
+            <button class="btn-gold" id="newPackIdeaBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Novi predlog</button>
+          </div>
+        </div>
+        <div class="stats" id="kpiPack"></div>
+        <div class="alerts" id="packAlerts"></div>
+        <div class="table-card" style="margin-bottom:22px"><table>
+          <thead><tr><th>Materijal</th><th>Dobavljač</th><th>Cena/kom</th><th>U svaki paket</th><th>Stanje</th><th></th></tr></thead>
+          <tbody id="packTbody"></tbody></table></div>
+        <div class="toolbar"><div class="fu-title">Predlozi: dizajn i promene pakovanja</div><div class="count" id="packIdeaCount"></div></div>
+        <div class="kanban" id="packBoard" style="display:flex"></div>
+      </div>
+
+      <!-- SAJT -->
+      <div class="view" id="v-site">
+        <div class="page-head">
+          <div><div class="page-title">Sajt</div><div class="page-sub">Predlozi za sajt: dizajn, tekstovi, funkcije, proizvodi.</div></div>
+          <button class="btn-gold" id="newSiteBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Novi predlog</button>
+        </div>
+        <div class="site-card" id="siteCard">
+          <div class="site-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></div>
+          <div class="site-info">
+            <div class="site-lbl">Sajt potkovica</div>
+            <a class="site-url" id="siteUrlText" href="#" target="_blank" rel="noopener"></a>
+            <div class="site-meta" id="siteMeta"></div>
+          </div>
+          <div class="site-actions">
+            <button class="mini-btn" id="siteCopyBtn">⧉ Kopiraj</button>
+            <button class="mini-btn" id="siteEditBtn">✎ Izmeni</button>
+            <a class="btn-gold" id="siteLink" href="#" target="_blank" rel="noopener" style="text-decoration:none">Otvori sajt ↗</a>
+          </div>
+        </div>
+        <div class="toolbar">
+          <div class="seg" id="siteCatSeg"><button data-cat="all" class="active">Sve</button><button data-cat="dizajn">Dizajn</button><button data-cat="tekst">Tekst</button><button data-cat="funkcija">Funkcija</button><button data-cat="proizvod">Proizvod</button><button data-cat="ostalo">Ostalo</button></div>
+          <div class="count" id="siteCount"></div>
+        </div>
+        <div class="kanban" id="siteBoard" style="display:flex"></div>
+      </div>
+
+      <!-- BRAND STORY -->
+      <div class="view" id="v-story">
+        <div class="page-head">
+          <div><div class="page-title">Brand story</div><div class="page-sub">Priča brenda, razrađujemo je zajedno. Čuva se sama dok kucaš. <span class="saving" id="saving">Sačuvano ✓</span></div></div>
+          <button class="btn-gold" id="newSecBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Novo poglavlje</button>
+        </div>
+        <div class="story-wrap">
+          <div class="story-doc" id="storyDoc"></div>
+          <div class="paper">
+            <h4>Beleške</h4>
+            <div class="who" id="whoSeg"><button data-who="all" class="active">Sve</button><button data-who="konstantin">Konstantin</button><button data-who="stefan">Stefan</button><button data-who="marjan">Marjan</button></div>
+            <div id="notes"></div>
+            <div class="writer" id="writerSeg"><span>Piše:</span><button data-writer="konstantin">Konstantin</button><button data-writer="stefan">Stefan</button><button data-writer="marjan">Marjan</button></div>
+            <textarea id="noteInput" placeholder="Nova beleška… (Enter za čuvanje)"></textarea>
+            <button class="mini-btn" id="noteSave" style="margin-top:6px">Sačuvaj belešku</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- REKLAME -->
+      <div class="view" id="v-ads">
+        <div class="page-head">
+          <div><div class="page-title">Reklame</div><div class="page-sub">Meta potrošnja po danu. Ručni unos dok ne povežemo Meta nalog.</div></div>
+        </div>
+        <div class="stats" id="kpiAds"></div>
+        <div class="panel" style="margin-bottom:16px">
+          <h4>Unesi potrošnju</h4>
+          <form id="adForm" class="frow3" style="align-items:end">
+            <div class="field" style="margin:0"><label>Datum</label><input type="date" id="adDay" required></div>
+            <div class="field" style="margin:0"><label>Potrošeno (RSD)</label><input type="number" step="0.01" id="adSpend" required></div>
+            <div class="field" style="margin:0"><label>Kampanja</label><input type="text" id="adCamp" placeholder="all"></div>
+            <div class="field" style="margin:0"><label>Kupovine (Meta)</label><input type="number" id="adPurch"></div>
+            <div class="field" style="margin:0"><label>Prihod (Meta)</label><input type="number" step="0.01" id="adRev"></div>
+            <button class="btn-gold" type="submit" style="justify-content:center">Sačuvaj</button>
+          </form>
+        </div>
+        <div class="table-card"><table>
+          <thead><tr><th>Datum</th><th>Kampanja</th><th>Potrošeno</th><th>Kupovine</th><th>Prihod (Meta)</th><th>Porudžbine tog dana (CRM)</th><th></th></tr></thead>
+          <tbody id="adTbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DRAWER porudžbine -->
+<div class="overlay" id="overlay"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div class="drawer-top">
+      <div><div class="drawer-title" id="dTitle"></div><div class="page-sub" id="dSub"></div></div>
+      <button class="icon-btn drawer-close" id="dClose">✕</button>
+    </div>
+    <div class="drawer-badges" id="dBadges"></div>
+    <div class="drawer-tabs" id="dTabs"><button data-dt="info" class="active">Detalji</button><button data-dt="activity">Aktivnost</button></div>
+  </div>
+  <div class="drawer-body" id="dBody"></div>
+  <div class="composer" id="composer">
+    <textarea id="cText" placeholder="Komentar… (Ctrl+V za screenshot)"></textarea>
+    <div class="attach-preview" id="attachPrev"><img id="attachImg"><span>Screenshot spreman</span><button id="attachX">✕</button></div>
+    <div class="composer-actions">
+      <label class="mini-btn">📎 Slika<input type="file" id="cFile" accept="image/*" hidden></label>
+      <button class="btn-gold" id="cSend">Pošalji</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL porudžbina -->
+<div class="modal-wrap" id="orderModal"><div class="modal-bg" data-close></div>
+  <div class="modal wide"><h3 id="omTitle">Nova porudžbina</h3>
+    <form id="orderForm">
+      <div class="frow">
+        <div class="field"><label>Ime i prezime *</label><input id="o_name" required></div>
+        <div class="field"><label>Telefon</label><input id="o_phone" type="tel"></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Instagram</label><input id="o_ig" placeholder="@"></div>
+        <div class="field"><label>Email</label><input id="o_email" type="email"></div>
+      </div>
+      <div class="field"><label>Adresa</label><input id="o_addr"></div>
+      <div class="frow">
+        <div class="field"><label>Grad</label><input id="o_city"></div>
+        <div class="field"><label>Poštanski broj</label><input id="o_zip"></div>
+      </div>
+      <div class="frow3">
+        <div class="field"><label>Kanal</label><select id="o_channel"><option value="instagram">Instagram</option><option value="shopify">Shopify</option><option value="other">Drugo</option></select></div>
+        <div class="field"><label>Plaćanje</label><select id="o_pay"><option value="cod">Pouzeće</option><option value="card">Kartica</option><option value="bank">Uplata na račun</option></select></div>
+        <div class="field"><label>Broj porudžbine</label><input id="o_no" placeholder="auto"></div>
+      </div>
+      <div class="sec-title">Artikli</div>
+      <div id="itemRows"></div>
+      <button type="button" class="mini-btn" id="addItemBtn">+ Dodaj artikal</button>
+      <div class="sec-title">Dostava i troškovi</div>
+      <div class="frow3">
+        <div class="field"><label>Dostava (kupac plaća)</label><input id="o_shipPrice" type="number" step="0.01" value="0"></div>
+        <div class="field"><label>Dostava (plaćamo kuriru)</label><input id="o_shipCost" type="number" step="0.01" value="0"></div>
+        <div class="field"><label>Pakovanje (kutija, papir, poklon)</label><input id="o_pack" type="number" step="0.01" value="0"></div>
+      </div>
+      <div class="frow3">
+        <div class="field"><label>Popust (RSD)</label><input id="o_disc" type="number" step="0.01" value="0"></div>
+        <div class="field"><label>Kod za popust</label><input id="o_code"></div>
+        <div class="field"><label>Kurir</label><input id="o_courier" list="couriers"><datalist id="couriers"><option>Post Express</option><option>D Express</option><option>BEX</option><option>AKS</option><option>City Express</option></datalist></div>
+      </div>
+      <div class="field"><label>Broj pošiljke</label><input id="o_track"></div>
+      <div class="field"><label>Napomena</label><textarea id="o_note"></textarea></div>
+      <div class="sum-box" id="orderSum"></div>
+      <div class="modal-actions"><button type="button" class="btn-ghost" data-close>Otkaži</button><button class="btn-gold" type="submit" id="omSave">Sačuvaj</button></div>
+    </form>
+  </div>
+</div>
+
+
+<!-- MODAL uvozna tura -->
+<div class="modal-wrap" id="impModal"><div class="modal-bg" data-close></div>
+  <div class="modal wide">
+    <h3 id="imTitle">Nova tura uvoza</h3>
+    <form id="impForm">
+      <div class="frow3">
+        <div class="field"><label>Oznaka ture</label><input id="im_code" placeholder="UVOZ-01"></div>
+        <div class="field"><label>Dobavljač *</label><input id="im_supplier" required placeholder="npr. Mustad, Hebei…"></div>
+        <div class="field"><label>Zemlja</label><input id="im_country" placeholder="Kina, Nemačka, Turska…"></div>
+      </div>
+      <div class="frow3">
+        <div class="field"><label>Status</label><select id="im_status">
+          <option value="planned">U planu</option><option value="ordered">Naručeno</option><option value="paid">Plaćeno</option>
+          <option value="transit">U transportu</option><option value="customs">Carina</option><option value="arrived">Stiglo</option><option value="cancelled">Otkazano</option>
+        </select></div>
+        <div class="field"><label>Valuta</label><select id="im_currency"><option>EUR</option><option>USD</option><option>CNY</option><option>RSD</option></select></div>
+        <div class="field"><label>Kurs u RSD <span class="hint" style="display:inline">(koliko je 1 jedinica valute)</span></label><input id="im_fx" type="number" step="0.0001" placeholder="npr. 117.2"></div>
+      </div>
+      <div class="frow3">
+        <div class="field"><label>Naručeno</label><input id="im_ordered_at" type="date"></div>
+        <div class="field"><label>Plaćeno</label><input id="im_paid_at" type="date"></div>
+        <div class="field"><label>Očekuje se</label><input id="im_eta" type="date"></div>
+      </div>
+      <div class="sec-title">Šta je naručeno</div>
+      <div id="impRows"></div>
+      <button type="button" class="mini-btn" id="impAddRow">+ Dodaj stavku</button>
+      <div class="sec-title">Troškovi ture (u RSD)</div>
+      <div class="frow3">
+        <div class="field"><label>Vozarina / transport</label><input id="im_freight_cost" type="number" step="0.01" value="0"></div>
+        <div class="field"><label>Carina i PDV</label><input id="im_duty_cost" type="number" step="0.01" value="0"></div>
+        <div class="field"><label>Ostalo (špedicija, banka…)</label><input id="im_other_cost" type="number" step="0.01" value="0"></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Broj pošiljke / špediter</label><input id="im_tracking"></div>
+        <div class="field"><label>Stiglo</label><input id="im_arrived_at" type="date"></div>
+      </div>
+      <div class="field"><label>Napomena</label><textarea id="im_note" placeholder="Dogovor, rokovi, šta pratiti…"></textarea></div>
+      <div class="sum-box" id="impFormSum"></div>
+      <div class="modal-actions" style="justify-content:space-between">
+        <button type="button" class="btn-ghost danger" id="impDelete">Obriši turu</button>
+        <span><button type="button" class="btn-ghost" data-close>Otkaži</button> <button class="btn-gold" type="submit">Sačuvaj</button></span>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL proizvod -->
+<div class="modal-wrap" id="prodModal"><div class="modal-bg" data-close></div>
+  <div class="modal wide"><h3 id="pmTitle">Novi komad</h3>
+    <form id="prodForm">
+      <div class="frow">
+        <div class="field"><label>Naziv modela *</label><input id="p_name" required placeholder="npr. MUSTAD RAPID 22x8"></div>
+        <div class="field"><label>Vrsta</label><input id="p_cat" list="cats" placeholder="kasačka"><datalist id="cats"><option>klasična</option><option>kasačka</option><option>galopska</option><option>aluminijumska</option><option>ortopedska</option><option>ekseri</option><option>alat</option><option>ostalo</option></datalist></div>
+      </div>
+      <div class="frow3">
+        <div class="field"><label>Nabavna (RSD) *</label><input id="p_buy" type="number" step="0.01" required></div>
+        <div class="field"><label>Prodajna (RSD) *</label><input id="p_sell" type="number" step="0.01" required></div>
+        <div class="field"><label>"Bila" cena</label><input id="p_cmp" type="number" step="0.01"></div>
+      </div>
+      <div class="hint" id="p_hint"></div>
+      <div class="frow">
+        <div class="field"><label>Proizvođač</label><input id="p_maker" list="makers" placeholder="Mustad, St. Croix, Kings…"><datalist id="makers"><option>Mustad</option><option>St. Croix</option><option>Kings Plate</option><option>Kerckhaert</option><option>Bez marke</option></datalist></div>
+        <div class="field"><label>Materijal</label><input id="p_mat" placeholder="čelik, aluminijum"></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Dobavljač</label><input id="p_sup" placeholder="ko ti to prodaje"></div>
+        <div class="field"><label>Jedinica</label><select id="p_unit"><option value="kom">komad</option><option value="par">par</option><option value="kutija">kutija</option></select></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Link slike</label><input id="p_img" placeholder="https://…"></div>
+        <div class="field"><label>Status</label><select id="p_status"><option value="active">Aktivan</option><option value="draft">Priprema</option><option value="archived">Arhiviran</option></select></div>
+      </div>
+      <div class="sec-title">Veličine i stanje</div>
+      <div id="sizeRows"></div>
+      <button type="button" class="mini-btn" id="addSizeBtn">+ Veličina</button>
+      <div class="field" style="margin-top:14px"><label>Napomena</label><textarea id="p_note"></textarea></div>
+      <div class="modal-actions">
+        <button type="button" class="fu-remove" id="pmDelete" style="display:none">Obriši</button>
+        <button type="button" class="btn-ghost" data-close>Otkaži</button><button class="btn-gold" type="submit">Sačuvaj</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL objava -->
+<div class="modal-wrap" id="postModal"><div class="modal-bg" data-close></div>
+  <div class="modal wide"><h3 id="poTitle">Nova ideja za objavu</h3>
+    <form id="postForm">
+      <div class="field"><label>Ideja *</label><input id="po_title" required placeholder="npr. Pakujemo prvu porudžbinu"></div>
+      <div class="field"><label>Koncept</label><textarea id="po_concept" placeholder="Šta se vidi, kojim redom, koja muzika, koja poruka"></textarea></div>
+      <div class="field"><label>Hook (prve 2 sekunde)</label><input id="po_hook"></div>
+      <div class="frow3">
+        <div class="field"><label>Format</label><select id="po_format"><option value="reel">Reel</option><option value="carousel">Carousel</option><option value="story">Story</option><option value="post">Post</option><option value="tiktok">TikTok</option></select></div>
+        <div class="field"><label>Status</label><select id="po_status"></select></div>
+        <div class="field"><label>Zadužen</label><select id="po_assignee"><option value="">—</option><option>Konstantin</option><option>Stefan</option><option>Marjan</option></select></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Datum i vreme objave</label><input id="po_date" type="datetime-local"></div>
+        <div class="field"><label>Komad iz ponude</label><select id="po_product"></select></div>
+      </div>
+      <div class="field"><label>Google Drive link za snimak</label><input id="po_drive" type="url" placeholder="https://drive.google.com/…"></div>
+      <div class="field"><label>Opis ispod objave</label><textarea id="po_caption"></textarea></div>
+      <div class="frow">
+        <div class="field"><label>Link objave (kad izađe)</label><input id="po_url" type="url" placeholder="https://instagram.com/…"></div>
+        <div class="frow3" style="gap:8px">
+          <div class="field"><label>Pregledi</label><input id="po_views" type="number"></div>
+          <div class="field"><label>Lajkovi</label><input id="po_likes" type="number"></div>
+          <div class="field"><label>Sačuvano</label><input id="po_saves" type="number"></div>
+        </div>
+      </div>
+      <div id="poComments"></div>
+      <div class="modal-actions">
+        <button type="button" class="fu-remove" id="poDelete" style="display:none">Obriši</button>
+        <button type="button" class="btn-ghost" data-close>Otkaži</button><button class="btn-gold" type="submit">Sačuvaj</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL sajt -->
+<div class="modal-wrap" id="siteModal"><div class="modal-bg" data-close></div>
+  <div class="modal wide"><h3 id="siTitle">Novi predlog</h3>
+    <form id="siteForm">
+      <div class="field"><label>Predlog *</label><input id="si_title" required placeholder="npr. Dodati tabelu veličina na stranicu proizvoda"></div>
+      <div class="field"><label>Opis</label><textarea id="si_desc" placeholder="Šta tačno, gde na sajtu i zašto"></textarea></div>
+      <div class="frow3">
+        <div class="field"><label>Kategorija</label><select id="si_cat"><option value="dizajn">Dizajn</option><option value="tekst">Tekst</option><option value="funkcija">Funkcija</option><option value="proizvod">Proizvod</option><option value="materijal">Materijal</option><option value="ostalo">Ostalo</option></select></div>
+        <div class="field"><label>Prioritet</label><select id="si_prio"><option value="high">Visok</option><option value="medium" selected>Srednji</option><option value="low">Nizak</option></select></div>
+        <div class="field"><label>Status</label><select id="si_status"></select></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Link (primer ili stranica)</label><input id="si_link" type="url"></div>
+        <div class="field"><label>Slika / skica</label><input id="si_file" type="file" accept="image/*"></div>
+      </div>
+      <div id="siComments"></div>
+      <div class="modal-actions">
+        <button type="button" class="fu-remove" id="siDelete" style="display:none">Obriši</button>
+        <button type="button" class="btn-ghost" data-close>Otkaži</button><button class="btn-gold" type="submit">Sačuvaj</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL materijal -->
+<div class="modal-wrap" id="packModal"><div class="modal-bg" data-close></div>
+  <div class="modal wide"><h3 id="paTitle">Novi materijal</h3>
+    <form id="packForm">
+      <div class="frow">
+        <div class="field"><label>Naziv *</label><input id="pa_name" required></div>
+        <div class="field"><label>Vrsta</label><select id="pa_kind"><option value="kutija">Kutija</option><option value="papir">Papir</option><option value="stiker">Stiker</option><option value="kartica">Kartica</option><option value="etiketa">Etiketa</option><option value="poklon">Poklon</option><option value="ostalo">Ostalo</option></select></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Dobavljač</label><input id="pa_sup"></div>
+        <div class="field"><label>Link za poručivanje</label><input id="pa_link" type="url"></div>
+      </div>
+      <div class="frow3">
+        <div class="field"><label>Cena po komadu (RSD)</label><input id="pa_price" type="number" step="0.01"></div>
+        <div class="field"><label>Na stanju</label><input id="pa_stock" type="number"></div>
+        <div class="field"><label>Upozori kad padne na</label><input id="pa_min" type="number"></div>
+      </div>
+      <div class="field"><label>Koliko ide u svaki paket</label><input id="pa_per" type="number" min="0"><div class="hint">Ako je više od 0, nova porudžbina sama skida ovaj materijal sa stanja i dodaje ga u trošak pakovanja.</div></div>
+      <div class="field"><label>Napomena</label><textarea id="pa_note"></textarea></div>
+      <div class="modal-actions">
+        <button type="button" class="fu-remove" id="paDelete" style="display:none">Obriši</button>
+        <button type="button" class="btn-ghost" data-close>Otkaži</button><button class="btn-gold" type="submit">Sačuvaj</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL povrat -->
+<div class="modal-wrap" id="retModal"><div class="modal-bg" data-close></div>
+  <div class="modal wide" style="max-width:760px"><h3 id="rtTitle">Prijava</h3>
+    <div id="rtHead" class="drawer-badges"></div>
+    <form id="retForm">
+      <div class="frow3">
+        <div class="field"><label>Tip</label><select id="rt_type"><option value="return">Povrat</option><option value="exchange">Zamena</option><option value="complaint">Reklamacija</option><option value="feedback">Utisak</option></select></div>
+        <div class="field"><label>Status</label><select id="rt_status"></select></div>
+        <div class="field"><label>Zadužen</label><select id="rt_assignee"><option value="">—</option><option>Konstantin</option><option>Stefan</option><option>Marjan</option></select></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Kupac *</label><input id="rt_customer_name" required></div>
+        <div class="field"><label>Telefon</label><input id="rt_phone"></div>
+      </div>
+      <div class="frow3">
+        <div class="field"><label>Email</label><input id="rt_email"></div>
+        <div class="field"><label>Instagram</label><input id="rt_instagram"></div>
+        <div class="field"><label>Porudžbina</label><select id="rt_order_id"></select></div>
+      </div>
+      <div class="frow3">
+        <div class="field"><label>Komad</label><select id="rt_product_id"></select></div>
+        <div class="field"><label>Komad (kako je kupac napisao)</label><input id="rt_item"></div>
+        <div class="field"><label>Veličina</label><input id="rt_size"></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Razlog</label><input id="rt_reason" list="retReasons"><datalist id="retReasons"></datalist></div>
+        <div class="field"><label>Kupac želi</label><select id="rt_resolution_wanted"><option value="">—</option><option value="refund">Povrat novca</option><option value="credit">Vaučer</option><option value="exchange_size">Druga veličina</option><option value="exchange_model">Drugi model</option><option value="replace">Isti komad, ispravan</option><option value="discount">Popust, zadržava komad</option></select></div>
+      </div>
+      <div class="field"><label>Opis kupca</label><textarea id="rt_description" style="min-height:90px"></textarea></div>
+      <div class="frow">
+        <div class="field"><label>Umesto toga želi</label><input id="rt_exchange_details"></div>
+        <div class="field"><label>Tekući račun</label><input id="rt_bank_account"></div>
+      </div>
+      <div id="rtPhotos"></div>
+      <div class="sec-title">Rešavanje</div>
+      <div class="frow3">
+        <div class="field"><label>Paket primio kupac</label><input id="rt_delivered_on" type="date"></div>
+        <div class="field"><label>Vraćeni paket stigao kod nas</label><input id="rt_package_received_at" type="date"></div>
+        <div class="field"><label>Ocena (1-5)</label><input id="rt_rating" type="number" min="1" max="5"></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Vraćeno kupcu (RSD)</label><input id="rt_refund_amount" type="number" step="0.01"></div>
+        <div class="field"><label>Naš trošak slanja (RSD)</label><input id="rt_return_shipping_cost" type="number" step="0.01"></div>
+      </div>
+      <div class="field"><label>Kako je rešeno</label><textarea id="rt_resolution_note" style="min-height:60px"></textarea></div>
+      <div class="field"><label>Šta da popravimo kod nas</label><textarea id="rt_improve" style="min-height:60px" placeholder="npr. Tabela veličina za VERONU je netačna u struku"></textarea></div>
+      <div id="rtRestock"></div>
+      <div id="rtComments"></div>
+      <div class="modal-actions">
+        <button type="button" class="fu-remove" id="rtDelete" style="display:none">Obriši</button>
+        <button type="button" class="btn-ghost" id="rtIdea" style="display:none">→ Predlog za sajt</button>
+        <button type="button" class="btn-ghost" data-close>Otkaži</button><button class="btn-gold" type="submit">Sačuvaj</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL link sajta -->
+<div class="modal-wrap" id="siteUrlModal"><div class="modal-bg" data-close></div>
+  <div class="modal"><h3>Link sajta</h3>
+    <form id="siteUrlForm">
+      <div class="field"><label>Adresa sajta</label><input id="su_url" type="url" required placeholder="https://potkovica.rs"></div>
+      <div class="field"><label>Lozinka sajta <span class="hint" style="display:inline">(ako je sajt još zaključan, opciono)</span></label><input id="su_pass" placeholder="npr. lozinka123"></div>
+      <div class="hint">Vidi ga ceo tim, u sekciji Sajt. Kad kupite domen, samo promeni ovde.</div>
+      <div class="modal-actions"><button type="button" class="btn-ghost" data-close>Otkaži</button><button class="btn-gold" type="submit">Sačuvaj</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL promocija -->
+<div class="modal-wrap" id="promoModal"><div class="modal-bg" data-close></div>
+  <div class="modal wide"><h3 id="prTitle">Nova promocija</h3>
+    <form id="promoForm">
+      <div class="frow">
+        <div class="field"><label>Naziv *</label><input id="pr_name" required placeholder="npr. Lansiranje, PK10, Black Friday"></div>
+        <div class="field"><label>Vrsta</label><select id="pr_type"><option value="code">Kod za popust</option><option value="launch">Lansiranje</option><option value="flash">Flash akcija</option><option value="free_shipping">Besplatna dostava</option><option value="bundle">Paket / 2+1</option><option value="giveaway">Giveaway</option><option value="influencer">Influenser</option><option value="other">Drugo</option></select></div>
+      </div>
+      <div class="frow3">
+        <div class="field"><label>Kod</label><input id="pr_code" placeholder="PK10" style="text-transform:uppercase"></div>
+        <div class="field"><label>Popust %</label><input id="pr_discount_pct" type="number" step="0.01"></div>
+        <div class="field"><label>Popust RSD</label><input id="pr_discount_rsd" type="number" step="0.01"></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Od *</label><input id="pr_starts_at" type="datetime-local" required></div>
+        <div class="field"><label>Do <span class="hint" style="display:inline">(prazno = traje)</span></label><input id="pr_ends_at" type="datetime-local"></div>
+      </div>
+      <div class="field"><label>Šta radimo</label><textarea id="pr_description" placeholder="Gde se promoviše, ko, kojim porukama"></textarea></div>
+      <div class="frow3">
+        <div class="field"><label>Kanal</label><input id="pr_channel" list="channels" placeholder="Instagram, Meta ads, email"><datalist id="channels"><option>Instagram</option><option>Meta ads</option><option>Email</option><option>Influenser</option><option>Sajt</option></datalist></div>
+        <div class="field"><label>Budžet (RSD)</label><input id="pr_budget" type="number" step="0.01"></div>
+        <div class="field"><label>Cilj</label><input id="pr_goal" placeholder="npr. 20 porudžbina"></div>
+      </div>
+      <div class="field"><label>Zaključak posle akcije</label><textarea id="pr_result_note" style="min-height:60px" placeholder="Šta je radilo, šta ne, šta sledeći put"></textarea></div>
+      <div id="prResults"></div>
+      <div id="prNotes"></div>
+      <div class="modal-actions">
+        <button type="button" class="fu-remove" id="prDelete" style="display:none">Obriši</button>
+        <button type="button" class="btn-ghost" data-close>Otkaži</button><button class="btn-gold" type="submit">Sačuvaj</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL događaj -->
+<div class="modal-wrap" id="msModal"><div class="modal-bg" data-close></div>
+  <div class="modal"><h3 id="msTitle">Zabeleži događaj</h3>
+    <form id="msForm">
+      <div class="field"><label>Šta se desilo *</label><input id="ms_title" required placeholder="npr. Stigla prva tura robe sa Kineza"></div>
+      <div class="frow">
+        <div class="field"><label>Kada</label><input id="ms_happened_at" type="datetime-local"></div>
+        <div class="field"><label>Vrsta</label><select id="ms_kind"><option value="event">Događaj</option><option value="start">Početak nečega</option><option value="end">Kraj nečega</option><option value="decision">Odluka</option><option value="milestone">Prekretnica</option></select></div>
+      </div>
+      <div class="field"><label>Detalji</label><textarea id="ms_body" placeholder="Zašto, ko, koliko, šta dalje"></textarea></div>
+      <div class="hint">Ostaje zauvek u Istoriji, sa tvojim imenom.</div>
+      <div class="modal-actions">
+        <button type="button" class="fu-remove" id="msDelete" style="display:none">Obriši</button>
+        <button type="button" class="btn-ghost" data-close>Otkaži</button><button class="btn-gold" type="submit">Sačuvaj</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL kupac -->
+<div class="modal-wrap" id="custModal"><div class="modal-bg" data-close></div>
+  <div class="modal wide" style="max-width:820px">
+    <div class="cust-head" id="custHead"></div>
+    <div class="drawer-tabs" id="custTabs" style="margin:10px 0 16px"><button data-ct="profile" class="active">Profil</button><button data-ct="orders">Porudžbine</button><button data-ct="loyalty">Klub i poeni</button><button data-ct="notes">Beleške</button></div>
+    <div id="custBody"></div>
+  </div>
+</div>
+
+<!-- MODAL kod -->
+<div class="modal-wrap" id="codeModal"><div class="modal-bg" data-close></div>
+  <div class="modal"><h3 id="cdTitle">Novi kod za popust</h3>
+    <form id="codeForm">
+      <div class="frow">
+        <div class="field"><label>Kod *</label><input id="cd_code" required style="text-transform:uppercase" placeholder="PK10"></div>
+        <div class="field"><label>Vrsta</label><select id="cd_kind"><option value="general">Opšti</option><option value="personal">Lični (jedan kupac)</option><option value="loyalty">Nagrada iz kluba</option><option value="influencer">Influenser</option></select></div>
+      </div>
+      <div class="field" id="cd_custWrap"><label>Kupac</label><select id="cd_customer_id"></select></div>
+      <div class="frow3">
+        <div class="field"><label>Popust %</label><input id="cd_pct" type="number" step="0.01"></div>
+        <div class="field"><label>Popust RSD</label><input id="cd_rsd" type="number" step="0.01"></div>
+        <div class="field"><label>Min. porudžbina</label><input id="cd_min_order" type="number" step="0.01"></div>
+      </div>
+      <div class="frow3">
+        <div class="field"><label>Važi od</label><input id="cd_valid_from" type="date"></div>
+        <div class="field"><label>Važi do</label><input id="cd_valid_to" type="date"></div>
+        <div class="field"><label>Maks. upotreba</label><input id="cd_max_uses" type="number"></div>
+      </div>
+      <div class="field"><label>Napomena</label><input id="cd_note"></div>
+      <label class="check" style="font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="cd_active" checked> Aktivan</label>
+      <div class="hint">Kod treba da postoji i na Shopify sajtu. Ovde ga pratimo i vidimo koliko je puta iskorišćen (po polju „Kod za popust“ na porudžbini).</div>
+      <div class="modal-actions">
+        <button type="button" class="fu-remove" id="cdDelete" style="display:none">Obriši</button>
+        <button type="button" class="btn-ghost" data-close>Otkaži</button><button class="btn-gold" type="submit">Sačuvaj</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- COMMAND PALETTE -->
+<div class="cmd-wrap" id="cmdWrap"><div class="cmd-bg" id="cmdBg"></div>
+  <div class="cmd">
+    <div class="cmd-in"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="cmdInput" placeholder="Kucaj sekciju, kupca, broj porudžbine, komad, akciju…" autocomplete="off"><kbd>Esc</kbd></div>
+    <div class="cmd-list" id="cmdList"></div>
+    <div class="cmd-foot"><span><kbd>↑</kbd><kbd>↓</kbd> kretanje</span><span><kbd>Enter</kbd> otvori</span><span><kbd>⌘K</kbd> ili <kbd>/</kbd> otvara pretragu</span></div>
+  </div>
+</div>
+
+<!-- MOBILNI MENI -->
+<div class="nav-ov" id="navOv"></div>
+<aside class="nav-drawer" id="navDrawer" aria-label="Meni">
+  <div class="nd-head">
+    <div class="brand"><div class="brand-mark"><svg class="logo" viewBox="0 0 120 120" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round"><path d="M34 22 L34 64 a26 26 0 0 0 52 0 L86 22" stroke-width="9"/><circle cx="40" cy="34" r="3.5" fill="currentColor" stroke="none"/><circle cx="80" cy="34" r="3.5" fill="currentColor" stroke="none"/><circle cx="37" cy="52" r="3.5" fill="currentColor" stroke="none"/><circle cx="83" cy="52" r="3.5" fill="currentColor" stroke="none"/></g></svg></div><div><div class="brand-name">POTKOVICE</div><div class="brand-sub">CRM</div></div></div>
+    <button class="nd-x" id="navClose" aria-label="Zatvori">✕</button>
+  </div>
+  <div class="nd-search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="navQ" placeholder="Pretraži sekcije, kupce, porudžbine…" autocomplete="off"></div>
+  <nav class="nd-list" id="navList"></nav>
+  <div class="nd-foot">
+    <div class="select-wrap nd-proj"><select id="navProj"><option value="potkovice">POTKOVICE</option></select></div>
+    <div class="nd-user"><div class="avatar" id="navAvatar">K</div><div><b id="navUser"></b><div class="page-sub" style="color:#aab8a6">prijavljen/a</div></div><button class="mini-btn" id="navLogout">Odjavi se</button></div>
+  </div>
+</aside>
+
+<!-- OBAVEŠTENJA: traka -->
+<div class="ntray" id="ntray"></div>
+
+<!-- MODAL istorija obaveštenja -->
+<div class="modal-wrap" id="notifModal"><div class="modal-bg" data-close></div>
+  <div class="modal wide" style="max-width:860px;max-height:90vh;display:flex;flex-direction:column">
+    <h3 style="margin-bottom:10px">Istorija promena</h3>
+    <div class="toolbar" style="margin-bottom:10px">
+      <div class="seg" id="nfWho"><button data-w="others" class="active">Tuđe</button><button data-w="all">Sve</button><button data-w="konstantin">Konstantin</button><button data-w="stefan">Stefan</button><button data-w="marjan">Marjan</button></div>
+      <div class="select-wrap"><select id="nfCat"><option value="all">Sve vrste</option><option value="notes">Beleške</option><option value="order">Porudžbine</option><option value="customer">Kupci</option><option value="stock">Garderoba</option><option value="ret">Povrati</option><option value="promo">Promocije</option><option value="post">Objave</option><option value="pack">Pakovanje</option><option value="site">Sajt</option><option value="story">Brand story</option><option value="ads">Reklame</option><option value="code">Kodovi i poeni</option><option value="history">Istorija</option><option value="settings">Podešavanja</option><option value="comment">Komentari</option></select></div>
+      <input class="inline-input" id="nfQ" placeholder="traži…" style="width:160px">
+      <div class="count" id="nfCount"></div>
+    </div>
+    <div class="nf-list" id="nfList" style="overflow-y:auto;flex:1"></div>
+    <div class="modal-actions" style="justify-content:space-between"><button class="btn-ghost" id="nfMore">Učitaj starije</button><button class="btn-ghost" data-close>Zatvori</button></div>
+  </div>
+</div>
+
+<!-- MODAL analitika -->
+<div class="modal-wrap" id="metricModal"><div class="modal-bg" data-close></div>
+  <div class="modal wide mt-modal">
+    <div class="mt-head"><div><div class="mt-title" id="mtTitle"></div><div class="page-sub" id="mtSub"></div></div><button class="icon-btn" data-close>✕</button></div>
+    <div class="toolbar mt-tools">
+      <div class="seg" id="mtPreset"><button data-r="7">7 d</button><button data-r="30" class="active">30 d</button><button data-r="90">90 d</button><button data-r="month">Ovaj mesec</button><button data-r="lastmonth">Prošli mesec</button><button data-r="0">Sve</button></div>
+      <div class="range"><input type="date" id="mtFrom"><span>do</span><input type="date" id="mtTo"></div>
+      <div class="seg" id="mtGran"><button data-g="day" class="active">Dan</button><button data-g="week">Nedelja</button><button data-g="month">Mesec</button></div>
+      <label class="threshold" style="margin-left:auto"><input type="checkbox" id="mtCompare" style="width:auto"> uporedi sa prethodnim periodom</label>
+    </div>
+    <div class="mt-sum" id="mtSum"></div>
+    <div class="mt-chart" id="mtChart"></div>
+    <div class="mt-legend" id="mtLegend"></div>
+    <div class="toolbar" style="margin:12px 0 6px"><div class="fu-title" id="mtDetTitle">Klikni na stubić za detalje tog dana</div><div class="seg" style="margin-left:auto"><button id="mtTableBtn">Tabela</button></div></div>
+    <div id="mtDetails"></div>
+  </div>
+</div>
+
+<!-- MODAL brza beleška -->
+<div class="modal-wrap" id="noteModal"><div class="modal-bg" data-close></div>
+  <div class="modal qn">
+    <h3>Zabeleži</h3>
+    <textarea id="qn_body" placeholder="Šta treba da se zapamti…"></textarea>
+    <div class="writer" id="qnWriter"><span>Piše:</span><button data-qw="konstantin">Konstantin</button><button data-qw="stefan">Stefan</button><button data-qw="marjan">Marjan</button></div>
+    <div class="frow" style="margin-top:12px">
+      <div class="field" style="margin:0"><label>Gde ide</label><select id="qn_area"><option value="general">Beleške (opšta)</option><option value="milestone">Istorija (događaj sa datumom, nije beleška)</option></select></div>
+      <div class="field" style="margin:0;display:flex;align-items:flex-end"><label class="check" style="margin:0;display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="qn_pin"> Zakači na vrh</label></div>
+    </div>
+    <div class="modal-actions"><button type="button" class="btn-ghost" data-close>Otkaži</button><button class="btn-gold" id="qnSave">Sačuvaj <kbd style="margin-left:6px;background:rgba(255,255,255,.2);border-color:transparent;color:#EDE6DA">Ctrl ⏎</kbd></button></div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox"><img id="lightboxImg"></div>
+<!-- ASISTENT -->
+<button class="bot-fab" id="botFab" type="button" title="Asistent (taster ?)" aria-label="Asistent">
+  <svg class="ic-chat" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12Z"/><path d="M12 8.2l.9 2 2 .9-2 .9-.9 2-.9-2-2-.9 2-.9z" fill="currentColor" stroke="none"/></svg>
+  <svg class="ic-x" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+</button>
+<div class="bot-ov" id="botOv"></div>
+<section class="bot-panel" id="botPanel" aria-label="Asistent">
+  <div class="bot-head"><span class="bt-av">H</span><div><b>Asistent</b><small id="botSub">prečice i pomoć za CRM</small></div>
+    <button class="bh-btn" id="botClear" type="button" title="Nov razgovor">↺</button><button class="bh-btn" id="botClose" type="button" title="Zatvori">✕</button></div>
+  <div class="bot-msgs" id="botMsgs"></div>
+  <div class="bot-chips" id="botChips"></div>
+  <form class="bot-form" id="botForm" autocomplete="off"><input id="botInput" placeholder="Gde ideš ili šta ti treba…" enterkeyhint="send"><button type="submit" title="Pošalji"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg></button></form>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js?v=202609181118"></script>
+<script>window.HTML_BUILD="202609181118";</script>
+<script src="app.js?v=202609181118"></script>
+</body>
+</html>

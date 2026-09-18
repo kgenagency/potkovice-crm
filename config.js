@@ -1,0 +1,2 @@
+window.CRM_SUPABASE_URL='https://treqdonahihterhaxxfw.supabase.co';
+window.CRM_SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRyZXFkb25haGlodGVyaGF4eGZ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1NTQyNjksImV4cCI6MjEwNTEzMDI2OX0.isDEbLqmSxuS63WJRFQhsXi0M4HHRBgFrr1Fld0OWos';
