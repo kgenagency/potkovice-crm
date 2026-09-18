@@ -1606,14 +1606,14 @@ function cmdItems(qraw) {
   } else {
     state.customers.forEach(c => { const s = custStats(c); push('Kupci', { ic: '☺', title: c.name, sub: [c.phone, c.instagram, `${s.count} porudžbina`, rsd(s.spend)].filter(Boolean).join(' · '), k: 'cust', id: c.id }, Math.max(scoreMatch(c.name, qn), scoreMatch(c.phone, qn), scoreMatch(c.instagram, qn), scoreMatch(c.email, qn))); });
     state.orders.forEach(o => push('Porudžbine', { ic: '◫', title: `${o.order_no || ''} · ${o.customer_name}`, sub: `${ST[o.status]} · ${rsd(totals(o).revenue)} · ${fmtDate(o.created_at)} · ${itemsSummary(o).replace(/<[^>]+>/g, '')}`, k: 'order', id: o.id }, Math.max(scoreMatch(o.order_no, qn), scoreMatch(o.customer_name, qn), scoreMatch(o.phone, qn), scoreMatch(o.tracking_no, qn), scoreMatch(o.city, qn) / 2)));
-    state.products.forEach(p => { const st = variantsOf(p.id).reduce((a, v) => a + v.stock, 0); push('Garderoba', { ic: '▤', title: p.name, sub: `${p.category || ''} · ${st} kom na stanju · ${rsd(p.sell_price)}`, k: 'product', id: p.id }, Math.max(scoreMatch(p.name, qn), scoreMatch(p.category, qn) / 2)); });
+    state.products.forEach(p => { const st = variantsOf(p.id).reduce((a, v) => a + v.stock, 0); push('Potkovice', { ic: '▤', title: p.name, sub: `${p.category || ''} · ${st} kom na stanju · ${rsd(p.sell_price)}`, k: 'product', id: p.id }, Math.max(scoreMatch(p.name, qn), scoreMatch(p.category, qn) / 2)); });
     state.posts.forEach(p => push('Objave', { ic: '▶', title: p.title, sub: `${ST[p.status]} · ${FMT[p.format] || ''}${p.publish_at ? ' · ' + fmtDate(p.publish_at) : ''}`, k: 'post', id: p.id }, Math.max(scoreMatch(p.title, qn), scoreMatch(p.hook, qn) / 2)));
-    state.rets.forEach(r => push('Povrati', { ic: '↩', title: `${r.case_no} · ${r.customer_name}`, sub: `${RT[r.type]} · ${ST[r.status]} · ${r.item || ''}`, k: 'ret', id: r.id }, Math.max(scoreMatch(r.case_no, qn), scoreMatch(r.customer_name, qn), scoreMatch(r.phone, qn))));
-    state.promos.forEach(p => push('Promocije', { ic: '％', title: p.name, sub: `${fmtDate(p.starts_at)} → ${p.ends_at ? fmtDate(p.ends_at) : 'traje'}${p.code ? ' · ' + p.code : ''}`, k: 'promo', id: p.id }, Math.max(scoreMatch(p.name, qn), scoreMatch(p.code, qn))));
-    state.codes.forEach(c => push('Popusti', { ic: '％', title: c.code, sub: `${c.pct ? c.pct + '%' : ''}${c.rsd ? rsd(c.rsd) : ''} · ${codeUses(c).n} upotreba`, k: 'code', id: c.id }, scoreMatch(c.code, qn)));
+    state.rets.forEach(r => push('Reklamacije', { ic: '↩', title: `${r.case_no} · ${r.customer_name}`, sub: `${RT[r.type]} · ${ST[r.status]} · ${r.item || ''}`, k: 'ret', id: r.id }, Math.max(scoreMatch(r.case_no, qn), scoreMatch(r.customer_name, qn), scoreMatch(r.phone, qn))));
+    if (0) state.promos.forEach(p => push('Promocije', { ic: '％', title: p.name, sub: `${fmtDate(p.starts_at)} → ${p.ends_at ? fmtDate(p.ends_at) : 'traje'}${p.code ? ' · ' + p.code : ''}`, k: 'promo', id: p.id }, Math.max(scoreMatch(p.name, qn), scoreMatch(p.code, qn))));
+    if (0) state.codes.forEach(c => push('Popusti', { ic: '％', title: c.code, sub: `${c.pct ? c.pct + '%' : ''}${c.rsd ? rsd(c.rsd) : ''} · ${codeUses(c).n} upotreba`, k: 'code', id: c.id }, scoreMatch(c.code, qn)));
     state.milestones.forEach(m => push('Istorija', { ic: '◷', title: m.title, sub: fmtDate(m.happened_at), k: 'ms', id: m.id }, scoreMatch(m.title, qn)));
-    state.ideas.forEach(i => push('Predlozi', { ic: '✎', title: i.title, sub: i.area === 'site' ? 'Sajt' : 'Pakovanje', k: 'idea', id: i.id }, scoreMatch(i.title, qn)));
-    state.pack.forEach(p => push('Pakovanje', { ic: '▣', title: p.name, sub: `${p.stock} kom`, k: 'pack', id: p.id }, scoreMatch(p.name, qn)));
+    state.ideas.forEach(i => push('Predlozi', { ic: '✎', title: i.title, sub: 'Sajt', k: 'idea', id: i.id }, scoreMatch(i.title, qn)));
+    if (0) state.pack.forEach(p => push('Pakovanje', { ic: '▣', title: p.name, sub: `${p.stock} kom`, k: 'pack', id: p.id }, scoreMatch(p.name, qn)));
     out.push({ grp: 'Filter', score: 0.5, ic: '⌕', title: `Filtriraj tekuću sekciju po „${qraw.trim()}“`, sub: 'Sužava tabele i table u sekciji u kojoj si', k: 'filter', q: qraw.trim() });
   }
   out.sort((a, b) => b.score - a.score);
@@ -1852,7 +1852,7 @@ function renderCustBody() {
     const rets = state.rets.filter(r => r.customer_id === c.id);
     $('custBody').innerHTML = `<div class="cust-nums"><div><b>${s.count}</b><span>porudžbina</span></div><div><b>${rsd(s.spend)}</b><span>potrošeno</span></div><div><b>${s.count ? rsd(s.spend / s.count) : '—'}</b><span>prosečna korpa</span></div><div><b>${s.rets}</b><span>povrata i prijava</span></div></div>
       ${s.all.slice().sort((a, b) => b.created_at.localeCompare(a.created_at)).map(o => `<div class="list-row" data-order="${o.id}"><span><b>${esc(o.order_no || '')}</b> · ${fmtDate(o.created_at)} · ${itemsSummary(o)}</span><span>${pill(o.status)} <b class="num">${rsd(totals(o).revenue)}</b></span></div>`).join('') || '<div class="kb-empty">Još nema porudžbina.</div>'}
-      ${rets.length ? `<div class="sec-title">Povrati i prijave</div>${rets.map(r => `<div class="list-row" data-ret="${r.id}"><span><b>${esc(r.case_no)}</b> · ${RT[r.type]} · ${esc(r.item || '')} ${esc(r.reason || '')}</span>${pill(r.status)}</div>`).join('')}` : ''}`;
+      ${rets.length ? `<div class="sec-title">Reklamacije</div>${rets.map(r => `<div class="list-row" data-ret="${r.id}"><span><b>${esc(r.case_no)}</b> · ${RT[r.type]} · ${esc(r.item || '')} ${esc(r.reason || '')}</span>${pill(r.status)}</div>`).join('')}` : ''}`;
   } else if (t === 'loyalty') {
     const s = custStats(c), L = loy();
     const ev = state.levents.filter(e => e.customer_id === c.id).sort((a, b) => b.created_at.localeCompare(a.created_at));
@@ -1920,7 +1920,7 @@ const NF_TBL = {
     open: r => r.order_id ? `order:${r.order_id}` : r.post_id ? `post:${r.post_id}` : r.return_id ? `ret:${r.return_id}` : r.customer_id ? `cust:${r.customer_id}` : r.site_id ? `idea:${r.site_id}` : '',
     ins: r => r.type === 'comment' ? `komentar „${(r.body || '').slice(0, 90)}“` : 'screenshot' },
 };
-const NF_CAT = { import: 'Nabavka i uvoz', notes: 'Beleške', order: 'Porudžbine', customer: 'Kupci', stock: 'Garderoba', ret: 'Povrati', promo: 'Promocije', post: 'Objave', pack: 'Pakovanje', site: 'Sajt', story: 'Brand story', ads: 'Reklame', code: 'Kodovi i poeni', history: 'Istorija', settings: 'Podešavanja', comment: 'Komentari' };
+const NF_CAT = { import: 'Nabavka i uvoz', notes: 'Beleške', order: 'Porudžbine', customer: 'Kupci', stock: 'Potkovice', ret: 'Reklamacije', promo: 'Promocije', post: 'Objave', pack: 'Pakovanje', site: 'Sajt', story: 'Brand story', ads: 'Reklame', code: 'Kodovi i poeni', history: 'Istorija', settings: 'Podešavanja', comment: 'Komentari' };
 function nfVerb(actor, what) {
   const f = PEOPLE[actor]?.f, sys = !PEOPLE[actor];
   return { add: sys ? 'dodato' : f ? 'dodala' : 'dodao', edit: sys ? 'izmenjeno' : f ? 'izmenila' : 'izmenio', del: sys ? 'obrisano' : f ? 'obrisala' : 'obrisao', restore: sys ? 'vraćeno' : f ? 'vratila' : 'vratio' }[what];
@@ -2276,7 +2276,7 @@ function deltaChip(key) {
 function renderHomeNotes() {
   if (!$('homeNotes')) return;                 // beleške imaju svoju sekciju, početna ostaje pregledna
   const list = state.notes.slice().sort((a, b) => (b.pinned - a.pinned) || (a.done - b.done) || b.created_at.localeCompare(a.created_at));
-  const where = (x) => x.area === 'story' ? 'Brand story' : (x.area || '').startsWith('promo:') ? ('Promocija: ' + (state.promos.find(p => p.id === x.area.split(':')[1])?.name || '')) : '';
+  const where = (x) => x.area === 'story' ? 'Beleške' : (x.area || '').startsWith('promo:') ? ('Promocija: ' + (state.promos.find(p => p.id === x.area.split(':')[1])?.name || '')) : '';
   const show = list.filter(x => !x.done).slice(0, 6);
   $('homeNotes').innerHTML = show.map((x, i) => `<div class="hn ${x.pinned ? 'pinned' : ''} ${x.done ? 'done' : ''}" style="animation-delay:${i * 40}ms">
       <div class="txt">${esc(x.body).replace(/\n/g, '<br>')}</div>
@@ -2334,7 +2334,7 @@ function renderNav() {
 
 /* ---------- STRANICA BELEŠKE ---------- */
 const npState = { who: 'all', status: 'open', area: 'all', sort: 'new', editId: null };
-const notePlace = (x) => x.area === 'story' ? 'Brand story' : (x.area || '').startsWith('promo:') ? ('Promocija: ' + (state.promos.find(p => p.id === x.area.split(':')[1])?.name || '')) : 'Opšta';
+const notePlace = (x) => x.area === 'story' ? 'Beleške' : (x.area || '').startsWith('promo:') ? ('Promocija: ' + (state.promos.find(p => p.id === x.area.split(':')[1])?.name || '')) : 'Opšta';
 const seenKey = () => 'crm_notes_seen_' + who();
 function notesUnread() { const seen = LS.get(seenKey(), ''); return state.notes.filter(x => x.author !== who() && !x.done && (!seen || x.created_at > seen)).length; }
 function renderNotesBadge() { const b = $('notesBadge'); if (b) b.style.display = 'none'; return; const n = notesUnread(); b.style.display = n && state.tab !== 'notes' ? '' : 'none'; b.textContent = n; }
@@ -3094,7 +3094,7 @@ function botUrgent() {
   if (todo.length) { const c = (s) => todo.filter(o => o.status === s).length; lines.push(botItem(`${todo.length} ${bpl(todo.length, 'porudžbina čeka', 'porudžbine čekaju', 'porudžbina čeka')} obradu`, [c('new') && `nove: ${c('new')}`, c('confirmed') && `potvrđene: ${c('confirmed')}`, c('packed') && `spakovane, za slanje: ${c('packed')}`].filter(Boolean).join(' · '), 'oview:pipeline', '◫')); }
   const open = state.rets.filter(r => !retClosed(r) && r.type !== 'feedback');
   const late = open.filter(r => retDue(r)?.level === 'late'), soon = open.filter(r => retDue(r)?.level === 'soon'), fresh = state.rets.filter(r => r.status === 'new');
-  if (late.length || soon.length || fresh.length) lines.push(botItem(`Povrati: ${[late.length && `${late.length} kasni`, soon.length && `${soon.length} ističe uskoro`, fresh.length && `${fresh.length} ${bpl(fresh.length, 'nova prijava', 'nove prijave', 'novih prijava')}`].filter(Boolean).join(', ')}`, 'Zakonski rok: 8 dana odgovor, 14 dana povrat novca', late.length ? 'say:Koji povrati kasne?' : 'tab:returns', '↩'));
+  if (late.length || soon.length || fresh.length) lines.push(botItem(`Reklamacije: ${[late.length && `${late.length} kasni`, soon.length && `${soon.length} ističe uskoro`, fresh.length && `${fresh.length} ${bpl(fresh.length, 'nova prijava', 'nove prijave', 'novih prijava')}`].filter(Boolean).join(', ')}`, 'Zakonski rok: 8 dana odgovor, 14 dana povrat novca', late.length ? 'say:Koji povrati kasne?' : 'tab:returns', '↩'));
   const al = stockAlerts();
   if (al.length) { const out = al.filter(x => x.v.stock <= 0).length; lines.push(botItem(`${al.length} ${bpl(al.length, 'veličina', 'veličine', 'veličina')} pri kraju zaliha`, out ? `${out} rasprodato` : 'vreme za dopunu', 'say:Šta fali na stanju?', '▤')); }
   const open2 = state.imps.filter(x => !x.received && x.status !== 'cancelled');
@@ -3114,7 +3114,7 @@ function botUrgent() {
 }
 function botStock() {
   const al = stockAlerts();
-  if (!al.length) return botSay(`Sve veličine imaju više od ${lowT()} kom. Nema upozorenja.`, [['Garderoba', 'tab:products']]);
+  if (!al.length) return botSay(`Sve veličine imaju više od ${lowT()} kom. Nema upozorenja.`, [['Potkovice', 'tab:products']]);
   botSay(`<div class="bt-cap" style="margin-bottom:6px">${al.length} ${bpl(al.length, 'veličina', 'veličine', 'veličina')} pri kraju (granica ≤ ${lowT()} kom):</div><div class="bt-list">${al.slice(0, 8).map(({ p, v }) => botItem(`${esc(p.name)} · ${esc(v.size)}${v.color ? ' ' + esc(v.color) : ''}`, v.stock <= 0 ? '<span class="bt-red">rasprodato</span>' : `ostalo ${v.stock} kom${p.supplier ? ' · ' + esc(p.supplier) : ''}`, 'ref:product:' + p.id, v.stock <= 0 ? '!' : v.stock)).join('')}</div>${al.length > 8 ? `<div class="bt-note">i još ${al.length - 8}…</div>` : ''}`, [['Sva upozorenja', 'tab:products']]);
 }
 function botImports() {
@@ -3130,9 +3130,9 @@ function botPack() {
 }
 function botReturns(t) {
   const open = state.rets.filter(r => !retClosed(r) && r.type !== 'feedback').sort((a, b) => (retDue(a)?.days ?? 99) - (retDue(b)?.days ?? 99));
-  if (!open.length) return botSay('Nema otvorenih povrata ni reklamacija. 👌', [['Povrati', 'tab:returns'], ['Kopiraj link forme', 'copyform']]);
+  if (!open.length) return botSay('Nema otvorenih reklamacija ni zamena.', [['Reklamacije', 'tab:returns']]);
   const late = open.filter(r => retDue(r)?.level === 'late').length;
-  botSay(`${t && bhas(t, ['kasn']) && !late ? '<div style="margin-bottom:8px">Nijedan povrat ne kasni ✓</div>' : ''}<div class="bt-cap" style="margin-bottom:6px">${open.length} ${bpl(open.length, 'otvoren slučaj', 'otvorena slučaja', 'otvorenih slučajeva')}${late ? `, <span class="bt-red">${late} kasni</span>` : ''}:</div><div class="bt-list">${open.slice(0, 7).map(r => { const d = retDue(r); return botItem(`${esc(r.case_no)} · ${esc(r.customer_name)}`, `${RT[r.type]} · ${ST[r.status] || r.status}${d ? ` · <span class="${d.level === 'late' ? 'bt-red' : d.level === 'soon' ? 'bt-amber' : ''}">${dueText(d)}</span>` : ''}`, 'ref:ret:' + r.id, '↩'); }).join('')}</div>`, [['Povrati', 'tab:returns']]);
+  botSay(`${t && bhas(t, ['kasn']) && !late ? '<div style="margin-bottom:8px">Nijedna reklamacija ne kasni ✓</div>' : ''}<div class="bt-cap" style="margin-bottom:6px">${open.length} ${bpl(open.length, 'otvoren slučaj', 'otvorena slučaja', 'otvorenih slučajeva')}${late ? `, <span class="bt-red">${late} kasni</span>` : ''}:</div><div class="bt-list">${open.slice(0, 7).map(r => { const d = retDue(r); return botItem(`${esc(r.case_no)} · ${esc(r.customer_name)}`, `${RT[r.type]} · ${ST[r.status] || r.status}${d ? ` · <span class="${d.level === 'late' ? 'bt-red' : d.level === 'soon' ? 'bt-amber' : ''}">${dueText(d)}</span>` : ''}`, 'ref:ret:' + r.id, '↩'); }).join('')}</div>`, [['Reklamacije', 'tab:returns']]);
 }
 function botPosts(t) {
   const P = bhas(t, ['danas']) ? botPeriod(t) : (() => { const f = new Date(); f.setHours(0, 0, 0, 0); const e = new Date(f); e.setDate(e.getDate() + 7); e.setMilliseconds(-1); return { from: f, to: e, label: 'u narednih 7 dana' }; })();
@@ -3157,7 +3157,7 @@ function botBest(t) {
   const P = botPeriod(t), agg = {};
   state.items.forEach(i => { const o = order(i.order_id); if (!o || NO_REVENUE.includes(o.status)) return; const d = new Date(o.created_at); if (d < P.from || d > P.to) return; const pid = i.product_id || variant(i.variant_id)?.product_id; if (!pid) return; (agg[pid] = agg[pid] || { q: 0, r: 0 }); agg[pid].q += i.qty; agg[pid].r += i.qty * n(i.unit_price); });
   const list = Object.entries(agg).sort((a, b) => b[1].q - a[1].q).slice(0, 6);
-  if (!list.length) return botSay(`Nema prodaje ${P.label}.`, [['Garderoba', 'tab:products']]);
+  if (!list.length) return botSay(`Nema prodaje ${P.label}.`, [['Potkovice', 'tab:products']]);
   botSay(`<div class="bt-cap" style="margin-bottom:6px">Najprodavanije ${P.label}:</div><div class="bt-list">${list.map(([pid, v], i) => botItem(esc(product(pid)?.name || 'komad'), `${v.q} kom · ${rsd(v.r)}`, 'ref:product:' + pid, i + 1)).join('')}</div>`);
 }
 function botChanges() {
