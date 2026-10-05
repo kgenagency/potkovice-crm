@@ -440,6 +440,16 @@ tbody tr{transition:background .15s}
 .feed .f-row{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-soft);font-size:13px;animation:fadeUp .4s var(--ease) both}
 .feed .f-dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none;background:var(--sage)}
 .feed .f-dot.order{background:#2a78d6}.feed .f-dot.stock{background:#d08a00}.feed .f-dot.alert{background:#a32c2c}
+.prod-find{margin-left:auto;display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:0 10px;color:var(--muted);min-width:220px}
+.prod-find input{border:0;outline:0;background:none;padding:8px 0;font:13.5px var(--font-ui);color:var(--ink);width:100%}
+.prod-find:focus-within{border-color:var(--sage);box-shadow:0 0 0 3px rgba(126,140,116,.18)}
+.alert-sum{font-size:12.5px;color:var(--muted)}
+.a-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.a-chip{font-size:11.5px;background:#fdf1d8;color:#6b4c00;border-radius:6px;padding:2px 7px;white-space:nowrap}
+.a-chip b{font-weight:800;margin-left:2px}
+.a-chip.out{background:#fbe5e5;color:#a32c2c}
+.low-sizes{color:var(--muted);font-size:12.5px}
+@media (max-width:640px){.prod-find{margin-left:0;flex:1 1 100%;min-width:0}.prod-find input{font-size:16px}}
 .threshold{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2)}
 .threshold input{width:56px;padding:5px 8px;border:1px solid var(--line);border-radius:8px}
 
@@ -1296,13 +1306,16 @@ table.imp-items .num,table.imp-items th.num{text-align:right}
           <button class="btn-gold" id="newProductBtn" title="Nova potkovica"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Novi komad</button></div>
         </div>
         <div class="stats" id="kpiStock"></div>
-        <div class="toolbar"><div class="fu-title">Upozorenja</div><span class="fu-count" id="alertCount">0</span>
-          <label class="threshold" style="margin-left:auto">Upozori kad ostane ≤ <input type="number" min="0" id="lowInput"> kom</label></div>
-        <div class="alerts" id="alerts"></div>
+        <div class="toolbar"><div class="fu-title">Modeli</div><span class="fu-count" id="prodCount">0</span>
+          <label class="prod-find"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="prodFind" type="search" placeholder="Nađi model ili veličinu" autocomplete="off"></label></div>
         <div class="table-card"><table>
           <thead><tr><th>Model</th><th>Veličine / stanje</th><th>Nabavna</th><th>Prodajna</th><th>Marža</th><th>Prodato</th><th>Status</th></tr></thead>
           <tbody id="prodTbody"></tbody>
         </table></div>
+        <div class="toolbar" style="margin-top:24px"><div class="fu-title">Pri kraju</div><span class="fu-count" id="alertCount">0</span><span class="alert-sum" id="alertSum"></span>
+          <button type="button" class="mini-btn" id="alertToggle">Prikaži</button>
+          <label class="threshold" style="margin-left:auto">Upozori kad ostane ≤ <input type="number" min="0" id="lowInput"> kom</label></div>
+        <div class="alerts" id="alerts"></div>
         <div class="panel feed" style="margin-top:18px"><h4>Šta se dešava sa robom</h4><div id="feed"></div></div>
       </div>
 
@@ -2094,8 +2107,8 @@ table.imp-items .num,table.imp-items th.num{text-align:right}
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=202610042056"></script>
-<script>window.HTML_BUILD="202610042056";</script>
-<script src="app.js?v=202610042056"></script>
+<script src="config.js?v=202610051130"></script>
+<script>window.HTML_BUILD="202610051130";</script>
+<script src="app.js?v=202610051130"></script>
 </body>
 </html>

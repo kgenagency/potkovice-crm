@@ -1,5 +1,5 @@
 /* ================= CRM · POTKOVICE ================= */
-const APP_BUILD = '202610042056';
+const APP_BUILD = '202610051130';
 if (window.HTML_BUILD !== APP_BUILD) {
   // stranica i kod nisu iste verzije (keš) → učitaj ponovo sveže
   try { if (sessionStorage.getItem('crm_reload') !== APP_BUILD) { sessionStorage.setItem('crm_reload', APP_BUILD); location.replace(location.pathname + '?v=' + Date.now()); } } catch (e) {}
@@ -271,7 +271,7 @@ function renderOverview() {
   const low = [];
   state.products.filter(p => p.status === 'active').forEach(p => variantsOf(p.id).forEach(v => { if (v.stock <= (v.min_stock ?? lowT())) low.push({ p, v }); }));
   $('lowCount').textContent = low.length;
-  $('lowList').innerHTML = low.map(({ p, v }) => `<div class="list-row" data-goto="products"><span><b>${esc(p.name)}</b> · ${esc(v.size)}${v.color ? ' · ' + esc(v.color) : ''}</span><span class="num ${v.stock <= 0 ? 'neg' : ''}">${v.stock} kom</span></div>`).join('') || '<div class="kb-empty">Sve veličine imaju zalihu.</div>';
+  $('lowList').innerHTML = groupAlerts(low).map(g => `<div class="list-row" data-goto="products"><span><b>${esc(g.p.name)}</b> <span class="low-sizes">· ${g.vs.map(v => esc(szLabel(v)) + ' ' + v.stock).join(', ')}</span></span><span class="num ${g.out ? 'neg' : ''}">${g.out ? g.out + ' rasprodato' : g.vs.reduce((a, v) => a + v.stock, 0) + ' kom'}</span></div>`).join('') || '<div class="kb-empty">Sve veličine imaju zalihu.</div>';
 
   const sold = {};
   os.forEach(o => itemsOf(o.id).forEach(i => { const k = i.product_id || i.name; sold[k] = sold[k] || { name: i.name, qty: 0, rev: 0 }; sold[k].qty += i.qty; sold[k].rev += i.qty * n(i.unit_price); }));
@@ -394,8 +394,8 @@ function soldQty(pid) {
   return state.items.filter(i => i.product_id === pid && !NO_REVENUE.includes(order(i.order_id)?.status)).reduce((a, i) => a + i.qty, 0);
 }
 function renderProducts() {
-  const qq = state.q.toLowerCase();
-  const list = state.products.filter(p => !qq || [p.name, p.category, p.supplier].join(' ').toLowerCase().includes(qq))
+  const qq = state.q.toLowerCase(), ff = fold(($('prodFind')?.value || '').trim());
+  const list = state.products.filter(p => (!qq || [p.name, p.category, p.supplier].join(' ').toLowerCase().includes(qq)) && (!ff || fold([p.name, p.category, p.supplier, ...variantsOf(p.id).map(v => `${v.size} ${v.color || ''}`)].join(' ')).includes(ff)))
     .sort((a, b) => (a.status === 'archived') - (b.status === 'archived'));
   let pcs = 0, cost = 0, models = 0, marg = 0;
   state.products.filter(p => p.status !== 'archived').forEach(p => {
@@ -414,7 +414,8 @@ function renderProducts() {
       <td class="num">${rsd(m)}<div class="page-sub">${n(p.sell_price) ? pct(m / n(p.sell_price)) : '—'} · ${n(p.buy_price) ? (n(p.sell_price) / n(p.buy_price)).toFixed(1) + 'x' : ''}</div></td>
       <td class="num">${soldQty(p.id)}</td>
       <td><span class="pill ${p.status === 'active' ? 'st-delivered' : p.status === 'draft' ? 'st-confirmed' : 'st-cancelled'}">${{ active: 'Aktivan', draft: 'Priprema', archived: 'Arhiviran' }[p.status]}</span></td></tr>`;
-  }).join('') || `<tr><td colspan="7" class="empty">Još nema robe. Klikni „Novi komad“.</td></tr>`;
+  }).join('') || `<tr><td colspan="7" class="empty">${state.products.length ? 'Nijedan model ne odgovara pretrazi.' : 'Još nema robe. Klikni „Novi komad“.'}</td></tr>`;
+  $('prodCount').textContent = (qq || ff) ? `${list.length} od ${state.products.length}` : state.products.length;
 }
 async function bumpStock(vid, d) {
   const v = variant(vid); if (!v) return;
@@ -830,17 +831,32 @@ function stockAlerts() {
   state.products.filter(p => p.status === 'active').forEach(p => variantsOf(p.id).forEach(v => { if (v.stock <= (v.min_stock ?? lowT())) out.push({ p, v }); }));
   return out.sort((a, b) => a.v.stock - b.v.stock);
 }
+/* upozorenja po modelu: jedna kartica po modelu umesto po veličini */
+const szLabel = (v) => [String(v.size).toUpperCase() === 'UNI' ? '' : v.size, v.color].filter(Boolean).join(' ') || v.size;
+function groupAlerts(al) {
+  const m = new Map();
+  al.forEach(({ p, v }) => { if (!m.has(p.id)) m.set(p.id, { p, vs: [] }); m.get(p.id).vs.push(v); });
+  return [...m.values()].map(g => ({ ...g, out: g.vs.filter(v => v.stock <= 0).length, min: Math.min(...g.vs.map(v => v.stock)) }))
+    .sort((a, b) => b.out - a.out || a.min - b.min || a.p.name.localeCompare(b.p.name));
+}
 function packAlerts() { return state.pack.filter(x => x.stock <= x.min_stock); }
 function renderGarderoba() {
-  const al = stockAlerts();
+  const al = stockAlerts(), groups = groupAlerts(al), outN = al.filter(x => x.v.stock <= 0).length;
+  const open = LS.get('crm_alerts_open', '0') === '1';
   $('alertCount').textContent = al.length;
+  $('alertSum').textContent = al.length ? `${bpl(al.length, 'veličina', 'veličine', 'veličina')} u ${groups.length} ${bpl(groups.length, 'modelu', 'modela', 'modela')}${outN ? ` · ${outN} rasprodato` : ''}` : '';
+  const tg = $('alertToggle'); tg.style.display = groups.length ? '' : 'none'; tg.textContent = open ? 'Sakrij' : `Prikaži${outN ? ' sve' : ''}`;
   if (document.activeElement !== $('lowInput')) $('lowInput').value = lowT();
-  $('alerts').innerHTML = al.map(({ p, v }) => `<div class="alert ${v.stock <= 0 ? 'out' : ''}" data-product="${p.id}">
-    <div class="a-ic">${v.stock <= 0 ? '!' : v.stock}</div>
-    <div><div class="a-t">${esc(p.name)} · ${esc(v.size)}${v.color ? ' · ' + esc(v.color) : ''}</div>
-    <div class="a-s">${v.stock <= 0 ? 'Rasprodato. Dopuni ili sakrij sa sajta.' : `Ostalo još ${v.stock} kom. Vreme za dopunu.`}${p.supplier ? ' Dobavljač: ' + esc(p.supplier) : ''}</div></div></div>`).join('')
-    || '<div class="panel" style="grid-column:1/-1"><span class="page-sub">Nema upozorenja. Sve veličine imaju dovoljno robe.</span></div>';
-  const b = $('alertBadge'); b.style.display = al.length ? '' : 'none'; b.textContent = al.length;
+  const show = open ? groups : groups.filter(g => g.out); // zatvoreno: vide se samo modeli sa rasprodatom veličinom
+  $('alerts').style.display = show.length || !al.length ? '' : 'none';
+  $('alerts').innerHTML = show.map(g => `<div class="alert ${g.out ? 'out' : ''}" data-product="${g.p.id}">
+    <div class="a-ic">${g.out ? '!' : g.min}</div>
+    <div style="min-width:0"><div class="a-t">${esc(g.p.name)}</div>
+    <div class="a-s">${g.out ? `${g.out} ${bpl(g.out, 'veličina rasprodata', 'veličine rasprodate', 'veličina rasprodato')}` : `${g.vs.length} ${bpl(g.vs.length, 'veličina', 'veličine', 'veličina')} pri kraju`}${g.p.supplier ? ' · ' + esc(g.p.supplier) : ''}</div>
+    <div class="a-chips">${g.vs.map(v => `<span class="a-chip ${v.stock <= 0 ? 'out' : ''}">${esc(szLabel(v))}<b>${v.stock}</b></span>`).join('')}</div></div></div>`).join('')
+    || (al.length ? '' : '<div class="panel" style="grid-column:1/-1"><span class="page-sub">Nema upozorenja. Sve veličine imaju dovoljno robe.</span></div>');
+  // bedž na kartici sekcije: samo rasprodate veličine (ono što traži akciju), ne svaka veličina pri kraju
+  const b = $('alertBadge'); b.style.display = outN ? '' : 'none'; b.textContent = outN;
   const pb = $('packBadge'); if (pb) { const pa = packAlerts().length; pb.style.display = pa ? '' : 'none'; pb.textContent = pa; }
 
   const rel = state.acts.filter(a => a.product_id || (a.order_id && (a.type === 'system' || (a.type === 'status' && a.body?.includes('roba'))))).slice(-40).reverse();
@@ -2864,6 +2880,8 @@ function bindEvents() {
 
   // v2 sekcije
   $('lowInput').addEventListener('change', (e) => { LS.set('crm_low', Math.max(0, parseInt(e.target.value) || 0)); renderAll(); });
+  $('prodFind').addEventListener('input', renderProducts);
+  $('alertToggle').addEventListener('click', () => { LS.set('crm_alerts_open', LS.get('crm_alerts_open', '0') === '1' ? '0' : '1'); renderGarderoba(); });
   $('newPostBtn').addEventListener('click', () => openPostModal());
   $('postForm').addEventListener('submit', savePost);
   $('poDelete').addEventListener('click', deletePost);
